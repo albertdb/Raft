@@ -14,3 +14,9 @@ socket.on('message',function(){
 });
 
 socket.send(['',process.argv[4],'','Hola']);
+
+//Aux functions
+function showArguments(a) {
+for(var k in a)
+console.log('\tPart', k, ':', a[k].toString());
+};
