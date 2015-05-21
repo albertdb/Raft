@@ -32,7 +32,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
     if(term<currentTerm){
         message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
     }
-    else if(votedFor==null || votedFor=candidateId){
+    else if(votedFor==null || votedFor==candidateId){
         message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
     }
     sendMessage(candidateId,message);
