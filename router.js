@@ -1,7 +1,7 @@
 var zmq=require('zmq')
     router=zmq.socket('router');
 
-frontend.bindSync('tcp://*:'+process.argv[2]);
+router.bindSync('tcp://*:'+process.argv[2]);
 
 router.on('message',function(){
     var args = Array.apply(null, arguments);
