@@ -63,7 +63,7 @@ function electionTimeout(){
             sendMessage(serverId,message);
         })(i);
 		}
-		clearTimeout(electionTimer);
+		//clearTimeout(electionTimer);
 		electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
