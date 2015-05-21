@@ -35,6 +35,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
     else if(votedFor==null || votedFor==candidateId){
         message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
     }
+    else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
     sendMessage(candidateId,message);
 }
 
@@ -63,7 +64,7 @@ function electionTimeout(){
             sendMessage(serverId,message);
         })(i);
 		}
-		//clearTimeout(electionTimer);
+		clearTimeout(electionTimer);
 		electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
