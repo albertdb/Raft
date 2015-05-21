@@ -61,7 +61,8 @@ function electionTimeout(){
         (function(serverId){
             var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id})
             sendMessage(serverID,message);
-		})(i);
+        })(i);
+		}
 		clearTimeout(electionTimer);
 		electionTimer=setTimeout(electionTimeout,electionTime);
 }
