@@ -2,9 +2,9 @@ var id=process.argv[2];
     currentTerm=0,
     state='f',
     votedFor=null,
-    grantedVotes=0;
+    grantedVotes=0,
     electionTime=randomInt(1500, 3000),
-    var serversIDs=Object.create(null);
+    serversIDs=Object.create(null),
     zmq=require('zmq'),
     socket = zmq.socket('dealer');
     
