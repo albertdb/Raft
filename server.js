@@ -60,7 +60,7 @@ function electionTimeout(){
 		for (var i in serversIDs) {
         (function(serverId){
             var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id})
-            sendMessage(serverID,message);
+            sendMessage(serverId,message);
         })(i);
 		}
 		clearTimeout(electionTimer);
