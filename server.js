@@ -52,6 +52,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
             currentTerm=term;
             state='f';
             votedFor=null;
+            clearTimeout(heartbeatTimer);
         }
         if(votedFor==null || votedFor==candidateId){
             votedFor=candidateId;
