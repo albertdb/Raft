@@ -61,12 +61,14 @@ function replyVote(term,voteGranted){
         grantedVotes=0;
         votedFor=null;
     }
-    if(voteGranted) grantedVotes++;
-    if(grantedVotes>(Object.keys(serversIDs).length+1)/2){
-        console.log("Election win");
-        state='l';
-        grantedVotes=0;
-        votedFor=null;
+    else if(voteGranted && term==currentTerm){
+        grantedVotes++;
+        if(grantedVotes>(Object.keys(serversIDs).length+1)/2){
+            console.log("Election win");
+            state='l';
+            grantedVotes=0;
+            //NO! votedFor=null;
+        }
     }
 }
 
