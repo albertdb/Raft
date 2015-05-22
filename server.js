@@ -15,6 +15,8 @@ function sendMessage(destination,message){
     socket.send(['',destination,'',message]);
 }
 
+var electionTimer=setTimeout(electionTimeout,electionTime);
+
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
     if(args[3]=='Hola'); //showArguments(args);
@@ -92,9 +94,6 @@ sendMessage(process.argv[4],'Hola');
 for(var i=0; i<4; i++){
     if(i!=id) serversIDs[i]=true;
 }
-
-console.log(electionTime);
-var electionTimer=setTimeout(electionTimeout,electionTime);
 
 function electionTimeout(){
     /*Term evolution
