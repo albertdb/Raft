@@ -4,6 +4,7 @@ var id=process.argv[2];
     votedFor=null,
     grantedVotes=0,
     electionTime=randomInt(1500, 3000),
+    heartbeatTime=750,
     serversIDs=Object.create(null),
     zmq=require('zmq'),
     socket = zmq.socket('dealer');
@@ -29,7 +30,16 @@ socket.on('message',function(){
 //RPCs
 
 function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderCommit){
-    
+    if(term>=currentTerm){
+        if(term>currentTerm){
+            /*Term evolution
+            process.stdout.write(state);
+            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
+            currentTerm=term;
+        }
+        clearTimeout(electionTimer);
+        electionTimer=setTimeout(electionTimeout,electionTime);
+    }
 }
 
 function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
@@ -69,6 +79,7 @@ function replyVote(term,voteGranted){
             //console.log("Election win");
             state='l';
             grantedVotes=0;
+            heartbeatTimer=setTimeout(heartbeatTimeout,0);
             //NO! votedFor=null;
         }
     }
@@ -99,7 +110,18 @@ function electionTimeout(){
 		electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
+var heartbeatTimer;
 
+function heartbeatTimeout(){
+		for (var i in serversIDs) {
+        (function(serverId){
+            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: null, prevLogTerm: null,entries: null, leaderCommit: null});
+            sendMessage(serverId,message);
+        })(i);
+		}
+		clearTimeout(heartbeatTimer);
+		heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
+}
 
 //Aux functions
 function showArguments(a) {
