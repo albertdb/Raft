@@ -40,9 +40,19 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
 }
 
 function replyVote(term,voteGranted){
-    if(term>currentTerm) currentTerm=term;
+    if(term>currentTerm){
+        currentTerm=term;
+        state='f';
+        grantedVotes=0;
+        votedFor=null;
+    }
     if(voteGranted) grantedVotes++;
-    if(grantedVotes>(Object.keys(serversIDs).length+1)/2) console.log("Election win");
+    if(grantedVotes>(Object.keys(serversIDs).length+1)/2){
+        console.log("Election win");
+        state='l';
+        grantedVotes=0;
+        votedFor=null;
+    }
 }
 
 sendMessage(process.argv[4],'Hola');
