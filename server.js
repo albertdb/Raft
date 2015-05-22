@@ -16,6 +16,11 @@ function sendMessage(destination,message){
 }
 
 var electionTimer=setTimeout(electionTimeout,electionTime);
+var heartbeatTimer;
+
+for(var i=0; i<4; i++){
+    if(i!=id) serversIDs[i]=true;
+}
 
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
@@ -28,6 +33,8 @@ socket.on('message',function(){
     else if(message.rpc=='replyVote') replyVote(message.term,message.voteGranted);
     }
 });
+
+sendMessage(process.argv[4],'Hola');
 
 //RPCs
 
@@ -89,11 +96,7 @@ function replyVote(term,voteGranted){
     }
 }
 
-sendMessage(process.argv[4],'Hola');
-
-for(var i=0; i<4; i++){
-    if(i!=id) serversIDs[i]=true;
-}
+//Timeout functions
 
 function electionTimeout(){
     /*Term evolution
@@ -111,8 +114,6 @@ function electionTimeout(){
 		clearTimeout(electionTimer);
 		electionTimer=setTimeout(electionTimeout,electionTime);
 }
-
-var heartbeatTimer;
 
 function heartbeatTimeout(){
 		for (var i in serversIDs) {
