@@ -37,6 +37,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
         }
+        console.log('Reseteo timer');
         clearTimeout(electionTimer);
         electionTimer=setTimeout(electionTimeout,electionTime);
     }
