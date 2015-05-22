@@ -29,11 +29,26 @@ socket.on('message',function(){
 
 function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
     var message;
-    if(term<currentTerm){
+    /*if(term<currentTerm){
         message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
     }
     else if(votedFor==null || votedFor==candidateId){
+        votedFor=candidateId;
         message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
+    }
+    else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
+    sendMessage(candidateId,message);*/
+    if(term>=currentTerm){
+        if(term>currentTerm){
+            currentTerm=term;
+            state='f';
+            votedFor=null;
+        }
+        if(votedFor==null || votedFor==candidateId){
+            votedFor=candidateId;
+            message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
+        }
+        else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
     }
     else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
     sendMessage(candidateId,message);
