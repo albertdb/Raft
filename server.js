@@ -64,7 +64,8 @@ function replyVote(term,voteGranted){
     else if(voteGranted && term==currentTerm){
         grantedVotes++;
         if(grantedVotes>(Object.keys(serversIDs).length+1)/2){
-            console.log("Election win");
+            
+            console.log("Election win with ",grantedVotes,' out of ',(Object.keys(serversIDs).length+1)/2+1,' required.');
             state='l';
             grantedVotes=0;
             //NO! votedFor=null;
