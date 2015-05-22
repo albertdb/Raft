@@ -18,31 +18,27 @@ socket.on('message',function(){
     var args = Array.apply(null, arguments);
     if(args[3]=='Hola'); //showArguments(args);
     else{
-    //showArguments(args);
+    showArguments(args);
     var message=JSON.parse(args[3]);
-    if(message.rpc=='requestVote') requestVote(message.term,message.candidateId,message.lastLogIndex,message.lastLogTerm);
+    if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
+    else if(message.rpc=='requestVote') requestVote(message.term,message.candidateId,message.lastLogIndex,message.lastLogTerm);
     else if(message.rpc=='replyVote') replyVote(message.term,message.voteGranted);
     }
 });
 
 //RPCs
 
+function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderCommit){
+    
+}
+
 function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
     var message;
-    /*if(term<currentTerm){
-        message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
-    }
-    else if(votedFor==null || votedFor==candidateId){
-        votedFor=candidateId;
-        message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
-    }
-    else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
-    sendMessage(candidateId,message);*/
     if(term>=currentTerm){
         if(term>currentTerm){
-            /*Term evolution*/
+            /*Term evolution
             process.stdout.write(state);
-            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');
+            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
             state='f';
             votedFor=null;
@@ -59,9 +55,9 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
 
 function replyVote(term,voteGranted){
     if(term>currentTerm){
-        /*Term evolution*/
+        /*Term evolution
         process.stdout.write(state);
-        for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');
+        for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
         currentTerm=term;
         state='f';
         grantedVotes=0;
@@ -87,8 +83,8 @@ for(var i=0; i<4; i++){
 var electionTimer=setTimeout(electionTimeout,electionTime);
 
 function electionTimeout(){
-    /*Term evolution*/
-    process.stdout.write(state);
+    /*Term evolution
+    process.stdout.write(state);*/
 		currentTerm++;
 		state='c';
 		votedFor=id;
