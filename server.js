@@ -16,7 +16,7 @@ function sendMessage(destination,message){
 
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
-    if(args[3]=='Hola') showArguments(args);
+    if(args[3]=='Hola'); //showArguments(args);
     else{
     //showArguments(args);
     var message=JSON.parse(args[3]);
@@ -41,8 +41,8 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
     if(term>=currentTerm){
         if(term>currentTerm){
             /*Term evolution*/
-            console.log(state);
-            for(var i=currentTerm+1;i<term;i++) console.log(' ');
+            process.stdout.write(state);
+            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');
             currentTerm=term;
             state='f';
             votedFor=null;
@@ -60,8 +60,8 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
 function replyVote(term,voteGranted){
     if(term>currentTerm){
         /*Term evolution*/
-        console.log(state);
-        for(var i=currentTerm+1;i<term;i++) console.log(' ');
+        process.stdout.write(state);
+        for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');
         currentTerm=term;
         state='f';
         grantedVotes=0;
@@ -70,7 +70,7 @@ function replyVote(term,voteGranted){
     else if(voteGranted && term==currentTerm){
         grantedVotes++;
         if(grantedVotes>(Object.keys(serversIDs).length+1)/2){
-            console.log("Election win");
+            //console.log("Election win");
             state='l';
             grantedVotes=0;
             //NO! votedFor=null;
@@ -88,7 +88,7 @@ var electionTimer=setTimeout(electionTimeout,electionTime);
 
 function electionTimeout(){
     /*Term evolution*/
-    console.log(state);
+    process.stdout.write(state);
 		currentTerm++;
 		state='c';
 		votedFor=id;
