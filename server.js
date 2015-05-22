@@ -74,7 +74,7 @@ function replyVote(term,voteGranted){
 
 sendMessage(process.argv[4],'Hola');
 
-for(var i=0; i<3; i++){
+for(var i=0; i<4; i++){
     if(i!=id) serversIDs[i]=true;
 }
 
