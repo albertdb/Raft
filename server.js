@@ -121,6 +121,8 @@ function heartbeatTimeout(){
 		}
 		clearTimeout(heartbeatTimer);
 		heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
+		clearTimeout(electionTimer);
+    electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
 //Aux functions
