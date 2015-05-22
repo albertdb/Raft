@@ -93,6 +93,7 @@ for(var i=0; i<4; i++){
     if(i!=id) serversIDs[i]=true;
 }
 
+console.log(electionTime);
 var electionTimer=setTimeout(electionTimeout,electionTime);
 
 function electionTimeout(){
