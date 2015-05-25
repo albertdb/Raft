@@ -70,7 +70,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         electionTimer=setTimeout(electionTimeout,electionTime);
     }
     else message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
-    sendMessage(leaderId,message);
+    if(entries.length>0) sendMessage(leaderId,message);
 }
 
 function replyAppendEntries(term,followerId,entriesToAppend,success){
