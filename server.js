@@ -64,7 +64,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
         }
         else{
-            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex-log.length+1+entries.length, success: false});
+            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex-log.length+entries.length, success: false});
         }
         clearTimeout(electionTimer);
         electionTimer=setTimeout(electionTimeout,electionTime);
