@@ -35,7 +35,7 @@ socket.on('message',function(){
     showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
-    else if(message.rpc=='replyAppendEntries') replyAppendEntries(message.term,message.success);
+    else if(message.rpc=='replyAppendEntries') replyAppendEntries(message.term,message.followerId,message.entriesToAppend,message.success);
     else if(message.rpc=='requestVote') requestVote(message.term,message.candidateId,message.lastLogIndex,message.lastLogTerm);
     else if(message.rpc=='replyVote') replyVote(message.term,message.voteGranted);
     }
@@ -56,21 +56,21 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         }
         if(log[prevLogIndex].term==prevLogTerm){
             for(var entry in entries) log.push(entry);
-            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, success: true});
+            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
         }
         else{
             while(prevLogIndex<log.length) log.pop();
-            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, success: false});
+            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
         }
         clearTimeout(electionTimer);
         electionTimer=setTimeout(electionTimeout,electionTime);
     }
-    else message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, success: false});
+    else message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
     sendMessage(leaderId,message);
 }
 
-function replyAppendEntries(term,success){
+function replyAppendEntries(term,followerId,entriesToAppend,success){
     if(term>currentTerm){
         /*Term evolution
         process.stdout.write(state);
@@ -81,10 +81,18 @@ function replyAppendEntries(term,success){
         votedFor=null;
     }
     else if(success){
-        
+        matchIndex[followerId]+=entriesToAppend;
+        if(nextIndex[followerId]<log.length){
+            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],log.length), leaderCommit: commitIndex});
+            sendMessage(followerId,message);
+            nextIndex[followerId]+=log.length-nextIndex[followerId];
+        }
     }
     else{
-        
+        nextIndex[followerId]-=entriesToAppend+1;
+        var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
+        sendMessage(followerId,message);
+        nextIndex[followerId]+=1;
     }
 }
 
@@ -174,8 +182,11 @@ function newEntry(){
       var entry=new LogEntry((new Date()).toISOString(),currentTerm);
       for (var i in nextIndex) {
           (function(serverId){
-              var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
-              sendMessage(serverId,message);
+              if(nextIndex[serverId]==log.length){
+                  var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
+                  sendMessage(serverId,message);
+                  nextIndex[serverId]+=1;
+              }
           })(i);
       }
       log.push(entry);
