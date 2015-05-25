@@ -55,7 +55,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             currentTerm=term;
         }
         if(log[prevLogIndex].term==prevLogTerm){
-            for(var entry in entries) log.push(entry);
+            for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
         }
