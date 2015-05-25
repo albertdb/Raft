@@ -167,7 +167,7 @@ function electionTimeout(){
 function heartbeatTimeout(){
 		for (var i in nextIndex) {
         (function(serverId){
-            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: null, leaderCommit: commitIndex});
+            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [], leaderCommit: commitIndex});
             sendMessage(serverId,message);
         })(i);
 		}
