@@ -16,6 +16,7 @@ var id=process.argv[2];
 socket['identity']=id;
 socket.connect(process.argv[3]);
 function sendMessage(destination,message){
+    console.log(message);
     socket.send(['',destination,'',message]);
 }
 
@@ -70,7 +71,6 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         electionTimer=setTimeout(electionTimeout,electionTime);
     }
     else message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
-    console.log(message);
     sendMessage(leaderId,message);
 }
 
