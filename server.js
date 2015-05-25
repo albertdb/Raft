@@ -54,14 +54,17 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
         }
-        if(log[prevLogIndex].term==prevLogTerm){
+        if(prevLogIndex<log.length && log[prevLogIndex].term==prevLogTerm){
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
         }
-        else{
+        else if(prevLogIndex<log.length){
             while(prevLogIndex<log.length) log.pop();
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
+        }
+        else{
+            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex-log.length+1+entries.length, success: false});
         }
         clearTimeout(electionTimer);
         electionTimer=setTimeout(electionTimeout,electionTime);
