@@ -67,8 +67,9 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             while(prevLogIndex<log.length) log.pop();
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
         }
-            recoveryPrevLogIndex=prevLogIndex;
+        else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
             recoveryMode=true;
+            recoveryPrevLogIndex=prevLogIndex;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex-log.length+1+entries.length, success: false});
             sendMessage(leaderId,message);
         }
