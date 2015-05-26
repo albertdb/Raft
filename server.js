@@ -163,8 +163,10 @@ function electionTimeout(){
 		grantedVotes=1
 		for (var i in nextIndex) {
         (function(serverId){
-            var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id});
-            sendMessage(serverId,message);
+            if(nextIndex[serverId]==log.length){
+                var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id});
+                sendMessage(serverId,message);
+            }
         })(i);
 		}
 		clearTimeout(electionTimer);
