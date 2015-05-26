@@ -7,6 +7,7 @@ var id=process.argv[2];
     lastApplied=0,
     nextIndex=Object.create(null),
     matchIndex=Object.create(null),
+    recoveryMode=false;
     grantedVotes=0,
     electionTime=randomInt(1500, 3000),
     heartbeatTime=750,
@@ -56,6 +57,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             currentTerm=term;
         }
         if(prevLogIndex<log.length && log[prevLogIndex].term==prevLogTerm){
+            recoveryMode=false;
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
@@ -64,7 +66,8 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             while(prevLogIndex<log.length) log.pop();
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
         }
-        else{
+        else if(!recoveryMode){
+            recoveryMode=true;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
         }
         clearTimeout(electionTimer);
@@ -93,7 +96,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 nextIndex[followerId]+=log.length-nextIndex[followerId];
             }
         }
-        else if(term==currentTerm){
+        else{
             nextIndex[followerId]-=entriesToAppend+1;
             console.log(nextIndex[followerId]-1);
             var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
