@@ -8,6 +8,7 @@ var id=process.argv[2];
     nextIndex=Object.create(null),
     matchIndex=Object.create(null),
     recoveryMode=false,
+    recoveryPrevLogIndex,
     grantedVotes=0,
     electionTime=randomInt(1500, 3000),
     heartbeatTime=750,
@@ -66,7 +67,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             while(prevLogIndex<log.length) log.pop();
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
         }
-        else if(!recoveryMode){
+            recoveryPrevLogIndex=prevLogIndex;
             recoveryMode=true;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex-log.length+1+entries.length, success: false});
             sendMessage(leaderId,message);
