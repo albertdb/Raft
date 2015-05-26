@@ -93,7 +93,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 nextIndex[followerId]+=log.length-nextIndex[followerId];
             }
         }
-        else{
+        else if(term==currentTerm){
             nextIndex[followerId]-=entriesToAppend+1;
             console.log(nextIndex[followerId]-1);
             var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
