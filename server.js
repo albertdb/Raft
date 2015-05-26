@@ -63,11 +63,8 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
         }
-        else if(prevLogIndex<log.length){
-            while(prevLogIndex<log.length) log.pop();
-            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
-        }
         else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
+            if(prevLogIndex<log.length) while(prevLogIndex<log.length) log.pop();
             recoveryMode=true;
             recoveryPrevLogIndex=prevLogIndex;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
