@@ -93,7 +93,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 nextIndex[followerId]+=log.length-nextIndex[followerId];
             }
         }
-        else if(term==currentTerm){
+        else{
             nextIndex[followerId]-=entriesToAppend+1;
             console.log(nextIndex[followerId]-1);
             var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
@@ -163,10 +163,8 @@ function electionTimeout(){
 		grantedVotes=1
 		for (var i in nextIndex) {
         (function(serverId){
-            if(nextIndex[serverId]==log.length){
-                var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id});
-                sendMessage(serverId,message);
-            }
+            var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id});
+            sendMessage(serverId,message);
         })(i);
 		}
 		clearTimeout(electionTimer);
@@ -176,8 +174,10 @@ function electionTimeout(){
 function heartbeatTimeout(){
 		for (var i in nextIndex) {
         (function(serverId){
-            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [], leaderCommit: commitIndex});
-            sendMessage(serverId,message);
+            if(nextIndex[serverId]==log.length){
+                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [], leaderCommit: commitIndex});
+                sendMessage(serverId,message);
+            }
         })(i);
 		}
 		clearTimeout(heartbeatTimer);
