@@ -2,7 +2,7 @@ var id=process.argv[2];
     currentTerm=0,
     state='f',
     votedFor=null,
-    log=[new LogEntry()],
+    log=[new LogEntry(null,0)],
     commitIndex=0,
     lastApplied=0,
     nextIndex=Object.create(null),
@@ -51,6 +51,7 @@ sendMessage(process.argv[4],'Hola');
 function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderCommit){
     var message;
     if(term>=currentTerm){
+        clearTimeout(electionTimer);
         if(term>currentTerm){
             /*Term evolution
             process.stdout.write(state);
@@ -62,6 +63,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
+            electionTimer=setTimeout(electionTimeout,electionTime);
         }
         else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
             if(prevLogIndex<log.length) while(prevLogIndex<log.length) log.pop();
@@ -70,8 +72,6 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
             sendMessage(leaderId,message);
         }
-        clearTimeout(electionTimer);
-        electionTimer=setTimeout(electionTimeout,electionTime);
     }
     else message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
     if(!recoveryMode) sendMessage(leaderId,message);
@@ -115,9 +115,10 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
             currentTerm=term;
             state='f';
             votedFor=null;
+            recoveryMode=false;
             clearTimeout(heartbeatTimer);
         }
-        if(votedFor==null || votedFor==candidateId){
+        if((votedFor==null || votedFor==candidateId) && (lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
             votedFor=candidateId;
             message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
         }
@@ -165,7 +166,7 @@ function electionTimeout(){
 		grantedVotes=1
 		for (var i in nextIndex) {
         (function(serverId){
-            var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id});
+            var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id, lastLogIndex: log.length-1, lastLogTerm: log[log.length-1].term});
             sendMessage(serverId,message);
         })(i);
 		}
