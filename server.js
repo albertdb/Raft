@@ -65,12 +65,12 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         }
         else if(prevLogIndex<log.length){
             while(prevLogIndex<log.length) log.pop();
-            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
+            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
         }
         else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
             recoveryMode=true;
             recoveryPrevLogIndex=prevLogIndex;
-            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: false});
+            message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
             sendMessage(leaderId,message);
         }
         clearTimeout(electionTimer);
@@ -100,8 +100,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             }
         }
         else{
-            nextIndex[followerId]-=entriesToAppend+1;
-            console.log(nextIndex[followerId]-1);
+            nextIndex[followerId]=entriesToAppend;
             var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
             sendMessage(followerId,message);
             nextIndex[followerId]+=1;
