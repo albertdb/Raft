@@ -8,7 +8,7 @@ var id=process.argv[2];
     nextIndex=Object.create(null),
     matchIndex=Object.create(null),
     recoveryMode=false,
-    recoveryPrevLogIndex,
+    recoveryPrevLogIndex=0,
     grantedVotes=0,
     electionTime=randomInt(1500, 3000),
     heartbeatTime=750,
