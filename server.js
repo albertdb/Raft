@@ -102,6 +102,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
         }
         else{
             nextIndex[followerId]=entriesToAppend;
+            matchIndex[followerId]=nextIndex[followerId]-1;
             var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
             sendMessage(followerId,message);
             nextIndex[followerId]+=1;
