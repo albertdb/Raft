@@ -4,6 +4,7 @@ var id=process.argv[2];
     votedFor=null,
     log=[new LogEntry(null,0)],
     commitIndex=0,
+    maybeNeedToCommit=false;
     lastApplied=0,
     nextIndex=Object.create(null),
     matchIndex=Object.create(null),
@@ -12,6 +13,7 @@ var id=process.argv[2];
     grantedVotes=0,
     electionTime=randomInt(1500, 3000),
     heartbeatTime=750,
+    commitTime=1000,
     zmq=require('zmq'),
     socket = zmq.socket('dealer');
     
@@ -25,6 +27,7 @@ function sendMessage(destination,message){
 var electionTimer=setTimeout(electionTimeout,electionTime);
 var heartbeatTimer;
 var newEntryInterval=setInterval(newEntry,1000);
+var commitInterval=setInterval(commitEntries,commitTime);
 
 for(var i=0; i<4; i++){
     if(i!=id) nextIndex[i]=1;
@@ -90,6 +93,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
         }
         else if(success){
             matchIndex[followerId]+=entriesToAppend;
+            maybeNeedToCommit=true;
             if(nextIndex[followerId]<log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],log.length), leaderCommit: commitIndex});
                 sendMessage(followerId,message);
@@ -191,21 +195,39 @@ function heartbeatTimeout(){
 
 function newEntry(){
     if(state=='l'){
-      var entry=new LogEntry((new Date()).toISOString(),currentTerm);
-      for (var i in nextIndex) {
-          (function(serverId){
-              if(nextIndex[serverId]==log.length){
-                  var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
-                  sendMessage(serverId,message);
-                  nextIndex[serverId]+=1;
-              }
-          })(i);
-      }
-      log.push(entry);
-      clearTimeout(heartbeatTimer);
-      heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
-      clearTimeout(electionTimer);
-      electionTimer=setTimeout(electionTimeout,electionTime);
+        var entry=new LogEntry((new Date()).toISOString(),currentTerm);
+        for (var i in nextIndex) {
+            (function(serverId){
+                if(nextIndex[serverId]==log.length){
+                    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
+                    sendMessage(serverId,message);
+                    nextIndex[serverId]+=1;
+                }
+            })(i);
+        }
+        log.push(entry);
+        clearTimeout(heartbeatTimer);
+        heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
+        clearTimeout(electionTimer);
+        electionTimer=setTimeout(electionTimeout,electionTime);
+    }
+}
+
+function commitEntries(){
+    if(maybeNeedToCommit){
+        var newCommitIndex=commitIndex-1;
+        var numReplicas;
+        do{
+            newCommitIndex++;
+            numReplicas=1;
+            for (var i in matchIndex) {
+                (function(serverId){
+                    if(matchIndex[serverId]>=newCommitIndex+1) numReplicas++;
+                })(i);
+            }
+        } while (numReplicas>(Object.keys(matchIndex).length+1)/2);
+        if(log[newCommitIndex].term==currentTerm) commitIndex=newCommitIndex;
+        maybeNeedToCommit=false;
     }
 }
 
