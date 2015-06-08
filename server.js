@@ -213,6 +213,7 @@ function newEntry(){
             })(i);
         }
         log.push(entry);
+        log.push(entry2);
         clearTimeout(heartbeatTimer);
         heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
         clearTimeout(electionTimer);
