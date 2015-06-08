@@ -15,7 +15,9 @@ var id=process.argv[2];
     heartbeatTime=750,
     commitTime=1000,
     zmq=require('zmq'),
-    socket = zmq.socket('dealer');
+    socket = zmq.socket('dealer'),
+    levelup = require('level'),
+    db = levelup('./'+id+'.db');
     
 socket['identity']=id;
 socket.connect(process.argv[3]);
@@ -65,7 +67,10 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             recoveryMode=false;
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
-            if(leaderCommit>commitIndex) commitIndex=Math.min(leaderCommit,log.length-1);
+            if(leaderCommit>commitIndex){
+                commitIndex=Math.min(leaderCommit,log.length-1);
+                setImmediate(processEntries,commitIndex+1);
+            }
             electionTimer=setTimeout(electionTimeout,electionTime);
         }
         else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
@@ -196,11 +201,12 @@ function heartbeatTimeout(){
 
 function newEntry(){
     if(state=='l'){
-        var entry=new LogEntry((new Date()).toISOString(),currentTerm);
+        var entry=new LogEntry(id,{type: 'PUT', key: log.length, value: (new Date()).toISOString()},currentTerm);
+        var entry2=new LogEntry(id,{type: 'GET', key: log.length},currentTerm);
         for (var i in nextIndex) {
             (function(serverId){
                 if(nextIndex[serverId]==log.length){
-                    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
+                    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry,entry2], leaderCommit: commitIndex});
                     sendMessage(serverId,message);
                     nextIndex[serverId]+=1;
                 }
@@ -227,14 +233,47 @@ function commitEntries(){
                 })(i);
             }
         } while (numReplicas>(Object.keys(matchIndex).length+1)/2);
-        if(log[newCommitIndex].term==currentTerm) commitIndex=newCommitIndex;
+        if(log[newCommitIndex].term==currentTerm){
+            commitIndex=newCommitIndex;
+            setImmediate(processEntries,commitIndex+1);
+        }
         maybeNeedToCommit=false;
+    }
+}
+
+function processEntries(upTo){
+    for(var i=lastApplied+1;i<upTo;i++){
+        switch(log[i].command.type) {
+            case 'GET':
+                if(log[i].clientId==id){
+                    db.get(log[i].command.key, function (err, value) {
+                        if (err) {
+                          if (err.notFound) {
+                            // handle a 'NotFoundError' here
+                            return
+                          }
+                          // I/O or other error, pass it up the callback chain
+                          return callback(err)
+                        }
+                        console.log(log[i].command.key, '=', value);
+                      });
+                }
+                break;
+            case 'PUT':
+                db.put(log[i].command.key,log[i].command.value);
+                break;
+            case 'DEL':
+                db.del(log[i].command.key);
+                break;
+        }
+        lastApplied=i;
     }
 }
 
 //Internal classes
 
-function LogEntry(command,term){
+function LogEntry(clientId,command,term){
+    this.clientId=clientId;
     this.command=command;
     this.term=term;
 }
