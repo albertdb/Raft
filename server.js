@@ -157,6 +157,7 @@ function replyVote(term,voteGranted){
             for (var i in nextIndex) {
                 (function(serverId){
                     nextIndex[serverId]=log.length;
+                    matchIndex[serverId]=log.length-1;
                 })(i);
             }
             heartbeatTimer=setTimeout(heartbeatTimeout,0);
