@@ -208,7 +208,7 @@ function newEntry(){
                 if(nextIndex[serverId]==log.length){
                     var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry,entry2], leaderCommit: commitIndex});
                     sendMessage(serverId,message);
-                    nextIndex[serverId]+=1;
+                    nextIndex[serverId]+=2;
                 }
             })(i);
         }
