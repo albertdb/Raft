@@ -1,8 +1,8 @@
-var id=process.argv[2];
+var id=process.argv[2],
     currentTerm=0,
     state='f',
     votedFor=null,
-    log=[new LogEntry(null,0)],
+    log=[new LogEntry(id,null,0)],
     commitIndex=0,
     maybeNeedToCommit=false;
     lastApplied=0,
