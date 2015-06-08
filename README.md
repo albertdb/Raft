@@ -7,7 +7,7 @@
 ### Install dependencies (npm)
 `cd Raft`
 
-`npm install zmq`
+`npm install zmq level`
 ## Execution
 ### Router
 `node router.js 12345`
