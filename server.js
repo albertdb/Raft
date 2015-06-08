@@ -244,30 +244,32 @@ function commitEntries(){
 
 function processEntries(upTo){
     for(var i=lastApplied+1;i<upTo;i++){
-        switch(log[i].command.type) {
-            case 'GET':
-                if(log[i].clientId==id){
-                    db.get(log[i].command.key, function (err, value) {
-                        if (err) {
-                          if (err.notFound) {
-                            // handle a 'NotFoundError' here
-                            return
-                          }
-                          // I/O or other error, pass it up the callback chain
-                          return callback(err)
-                        }
-                        console.log(log[i].command.key, '=', value);
-                      });
-                }
-                break;
-            case 'PUT':
-                db.put(log[i].command.key,log[i].command.value);
-                break;
-            case 'DEL':
-                db.del(log[i].command.key);
-                break;
-        }
-        lastApplied=i;
+        (function(entryIndex){
+            switch(log[entryIndex].command.type) {
+                case 'GET':
+                    if(log[entryIndex].clientId==id){
+                        db.get(log[entryIndex].command.key, function (err, value) {
+                            if (err) {
+                              if (err.notFound) {
+                                // handle a 'NotFoundError' here
+                                return
+                              }
+                              // I/O or other error, pass it up the callback chain
+                              return callback(err)
+                            }
+                            console.log(log[entryIndex].command.key, '=', value);
+                          });
+                    }
+                    break;
+                case 'PUT':
+                    db.put(log[entryIndex].command.key,log[entryIndex].command.value);
+                    break;
+                case 'DEL':
+                    db.del(log[entryIndex].command.key);
+                    break;
+            }
+            lastApplied=entryIndex;
+        })(i);
     }
 }
 
