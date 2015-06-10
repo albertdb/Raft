@@ -38,18 +38,13 @@ for(var i=0; i<4; i++){
 
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
-    if(args[3]=='Hola'); //showArguments(args);
-    else{
     showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
     else if(message.rpc=='replyAppendEntries') replyAppendEntries(message.term,message.followerId,message.entriesToAppend,message.success);
     else if(message.rpc=='requestVote') requestVote(message.term,message.candidateId,message.lastLogIndex,message.lastLogTerm);
     else if(message.rpc=='replyVote') replyVote(message.term,message.voteGranted);
-    }
 });
-
-sendMessage(process.argv[4],'Hola');
 
 //RPCs
 
