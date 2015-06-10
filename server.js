@@ -74,7 +74,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             electionTimer=setTimeout(electionTimeout,electionTime);
         }
         else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
-            if(prevLogIndex<log.length) while(prevLogIndex<log.length) log.pop();
+            while(prevLogIndex<log.length) log.pop();
             recoveryMode=true;
             recoveryPrevLogIndex=prevLogIndex;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
