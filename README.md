@@ -11,11 +11,11 @@
 ## Execution
 ### Router
 `node router.js 12345`
-### Node 0
-`node server.js 0 tcp://localhost:12345 1`
-### Node 1
-`node server.js 1 tcp://localhost:12345 1`
-### Node 2
-`node server.js 2 tcp://localhost:12345 1`
-### Node 3
-`node server.js 3 tcp://localhost:12345 1`
+### Node
+`node server.js <id> tcp://localhost:12345 <number of nodes>`
+#### Node 0
+`node server.js 0 tcp://localhost:12345 3`
+#### Node 1
+`node server.js 1 tcp://localhost:12345 3`
+#### Node 2
+`node server.js 2 tcp://localhost:12345 3`

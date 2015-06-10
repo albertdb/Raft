@@ -31,7 +31,7 @@ var heartbeatTimer;
 var newEntryInterval=setInterval(newEntry,1000);
 var commitInterval=setInterval(commitEntries,commitTime);
 
-for(var i=0; i<4; i++){
+for(var i=0; i<process.argv[4]; i++){
     if(i!=id) nextIndex[i]=1;
     if(i!=id) matchIndex[i]=0;
 }
