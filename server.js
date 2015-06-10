@@ -2,7 +2,7 @@ var id=process.argv[2],
     currentTerm=0,
     state='f',
     votedFor=null,
-    log=[new LogEntry(id,null,0)],
+    log=newLog(),
     commitIndex=0,
     maybeNeedToCommit=false;
     lastApplied=0,
@@ -275,6 +275,24 @@ function LogEntry(clientId,command,term){
     this.clientId=clientId;
     this.command=command;
     this.term=term;
+}
+
+//Internal functions
+
+function newLog(){
+    var log=Object.create(null);
+    log[0]=new LogEntry(id,null,0);
+    log.firstIndex=0;
+    log.length=1;
+    log.push=function(value){ this[this.length++]=value; };
+    log.pop=function(){ delete this[--this.length]; };
+    log.shift=function(){ delete this[this.firstIndex++]; };
+    log.slice=function(from,to){
+        var array=[];
+        for(var i=from;i<to;i++) array.push(this[i]);
+        return array;
+    }
+    return log;
 }
 
 
