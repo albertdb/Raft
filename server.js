@@ -95,9 +95,9 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             matchIndex[followerId]+=entriesToAppend;
             maybeNeedToCommit=true;
             if(nextIndex[followerId]<log.length){
-                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],log.length), leaderCommit: commitIndex});
+                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],Math.min(log.length,nextIndex[followerId]+100)), leaderCommit: commitIndex});
                 sendMessage(followerId,message);
-                nextIndex[followerId]+=log.length-nextIndex[followerId];
+                nextIndex[followerId]+=Math.min(log.length,nextIndex[followerId]+100)-nextIndex[followerId];
             }
         }
         else{
