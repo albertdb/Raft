@@ -239,34 +239,60 @@ function commitEntries(){
 }
 
 function processEntries(upTo){
-    for(var i=lastApplied+1;i<upTo;i++){
-        (function(entryIndex){
+    if (processEntries.upTo == undefined){
+        var entryIndex=lastApplied+1;
+        if(entryIndex<upTo){
+            processEntries.upTo = upTo;
             switch(log[entryIndex].command.type) {
                 case 'GET':
                     if(log[entryIndex].clientId==id){
                         db.get(log[entryIndex].command.key, function (err, value) {
                             if (err) {
-                              if (err.notFound) {
-                                // handle a 'NotFoundError' here
-                                return
-                              }
-                              // I/O or other error, pass it up the callback chain
-                              return callback(err)
+                                if (err.notFound) {
+                                    // handle a 'NotFoundError' here
+                                    return
+                                }
+                                // I/O or other error, throw it
+                                throw err;
                             }
                             console.log(log[entryIndex].command.key, '=', value);
-                          });
+                            lastApplied=entryIndex;
+                            setImmediate(processEntries,processEntries.upTo);
+                            processEntries.upTo=undefined;
+                        });
+                    }
+                    else{
+                        lastApplied=entryIndex;
+                        setImmediate(processEntries,processEntries.upTo);
+                        processEntries.upTo=undefined;
                     }
                     break;
                 case 'PUT':
-                    db.put(log[entryIndex].command.key,log[entryIndex].command.value);
+                    db.put(log[entryIndex].command.key,log[entryIndex].command.value, function (err) {
+                        if (err){
+                            // I/O or other error, throw it
+                            throw err;
+                        }
+                        lastApplied=entryIndex;
+                        setImmediate(processEntries,processEntries.upTo);
+                        processEntries.upTo=undefined;
+                    });
                     break;
                 case 'DEL':
-                    db.del(log[entryIndex].command.key);
+                    db.del(log[entryIndex].command.key, function (err) {
+                        if (err){
+                            // I/O or other error, throw it
+                            throw err;
+                        }
+                        lastApplied=entryIndex;
+                        setImmediate(processEntries,processEntries.upTo);
+                        processEntries.upTo=undefined;
+                    });
                     break;
             }
-            lastApplied=entryIndex;
-        })(i);
+        }
     }
+    else if(upTo > processEntries.upTo) processEntries.upTo = upTo;
 }
 
 //Internal classes
