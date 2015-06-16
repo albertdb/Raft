@@ -60,7 +60,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
         }
-        if(prevLogIndex<log.length && (log[prevLogIndex].term==prevLogTerm || log.length==log.firstIndex)){
+        if(prevLogIndex<log.length && (log.length==log.firstIndex || log[prevLogIndex].term==prevLogTerm)){
             recoveryMode=false;
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
