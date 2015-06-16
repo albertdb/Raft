@@ -6,6 +6,7 @@ var id=process.argv[2],
     commitIndex=0,
     maybeNeedToCommit=false;
     lastApplied=0,
+    maxAppliedEntriesInLog=10000,
     nextIndex=Object.create(null),
     matchIndex=Object.create(null),
     recoveryMode=false,
@@ -44,6 +45,7 @@ socket.on('message',function(){
     else if(message.rpc=='replyAppendEntries') replyAppendEntries(message.term,message.followerId,message.entriesToAppend,message.success);
     else if(message.rpc=='requestVote') requestVote(message.term,message.candidateId,message.lastLogIndex,message.lastLogTerm);
     else if(message.rpc=='replyVote') replyVote(message.term,message.voteGranted);
+    else if(message.rpc=='installSnapshot') installSnapshot(message.term,message.leaderId,message.lastIncludedIndex,message.lastIncludedTerm,message.offset,message.data,message.done);
 });
 
 //RPCs
@@ -58,7 +60,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
         }
-        if(prevLogIndex<log.length && log[prevLogIndex].term==prevLogTerm){
+        if(prevLogIndex<log.length && (log[prevLogIndex].term==prevLogTerm || log.length==log.firstIndex)){
             recoveryMode=false;
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
@@ -98,14 +100,47 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],Math.min(log.length,nextIndex[followerId]+100)), leaderCommit: commitIndex});
                 sendMessage(followerId,message);
                 nextIndex[followerId]+=Math.min(log.length,nextIndex[followerId]+100)-nextIndex[followerId];
+                if(nextIndex[followerId]==log.length) recoveryMode=false;
             }
         }
         else{
+            recoveryMode=true;
             nextIndex[followerId]=entriesToAppend;
             matchIndex[followerId]=nextIndex[followerId]-1;
-            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
-            sendMessage(followerId,message);
-            nextIndex[followerId]+=1;
+            if(log[nextIndex[followerId]-1])!=undefined){
+                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
+                sendMessage(followerId,message);
+                nextIndex[followerId]+=1;
+            }
+            else{
+                var dataArray=[];
+                var dataOffset=0;
+                var lastIncludedIndex=lastApplied;
+                var lastIncludedTerm=log[lastApplied].term;
+                db.createReadStream()
+                    .on('data', function (data) {
+                        dataArray.push({type: 'put', key: data.key, value: data.value});
+                        if(dataArray.length>99){
+                            var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: false});
+                            sendMessage(followerId,message);
+                            dataOffset+=dataArray.length;
+                            dataArray=[];
+                        }
+                })
+                    .on('error', function (err) {
+                        console.log('Oh my!', err);
+                })
+                    .on('close', function () {
+                })
+                    .on('end', function () {
+                        var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: true});
+                        sendMessage(followerId,message);
+                        delete dataOffset;
+                        delete dataArray;
+                        nextIndex[followerId]=lastIncludedIndex+1;
+                        matchIndex[followerId]=nextIndex[followerId]-1;
+                });
+            }
         }
     }
 }
@@ -158,6 +193,64 @@ function replyVote(term,voteGranted){
             heartbeatTimer=setTimeout(heartbeatTimeout,0);
             //NO! votedFor=null;
         }
+    }
+}
+
+function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset,data,done){
+    if(term>currentTerm){
+        /*Term evolution
+        process.stdout.write(state);
+        for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
+        currentTerm=term;
+    }
+    if(term==currentTerm && offset==0){
+        installSnapshot.pendingBatches=1;
+        db.close(function(err){
+            if(err) throw err;
+            levelup.destroy('./'+id+'.db',function(err){
+                if(err) throw err;
+                db=levelup('./'+id+'.db');
+                db.batch(data, function (err) {
+                      if(err) throw err;
+                      installSnapshot.pendingBatches--;
+                      if(done){
+                          var message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: 0, success: true});
+                          sendMessage(leaderId,message);
+                          log=newLog();
+                          log.shift();
+                          log.firstIndex=lastIncludedIndex+1;
+                          log.length=log.firstIndex;
+                          commitIndex=lastIncludedIndex;
+                          lastApplied=lastIncludedIndex;
+                          recoveryMode=false;
+                      }
+                })
+            });
+        });
+    }
+    else if(offset>0){
+        if(db.isOpen()){
+            installSnapshot.pendingBatches++;
+            db.batch(data, function (err) {
+                if(err) throw err;
+                installSnapshot.pendingBatches--;
+                if(done){
+                    if(installSnapshot.pendingBatches==0){
+                        var message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: 0, success: true});
+                        sendMessage(leaderId,message);
+                        log=newLog();
+                        log.shift();
+                        log.firstIndex=lastIncludedIndex+1;
+                        log.length=log.firstIndex;
+                        commitIndex=lastIncludedIndex;
+                        lastApplied=lastIncludedIndex;
+                        recoveryMode=false;
+                    }
+                    else setImmediate(installSnapshot,term,leaderId,lastIncludedIndex,lastIncludedTerm,offset,[],done);
+                }
+            });
+        }
+        else setImmediate(installSnapshot,term,leaderId,lastIncludedIndex,lastIncludedTerm,offset,data,done);
     }
 }
 
@@ -293,6 +386,7 @@ function processEntries(upTo){
         }
     }
     else if(upTo > processEntries.upTo) processEntries.upTo = upTo;
+    if(!recoveryMode) while(lastApplied-log.firstIndex>maxAppliedEntriesInLog) log.shift();
 }
 
 //Internal classes
