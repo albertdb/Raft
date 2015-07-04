@@ -24,7 +24,7 @@ clientSocket.on('message',function(){
 
 var server=require('./server');
 server.on('result',function(err,clientSeqNum,value){
-    if(value) console.log(clientSeqNum,' ',value);
+    if(value) console.log('Client: ',clientSeqNum,' ',value);
 });
 
 function replyNewEntry(clientSeqNum,success,leaderId){
