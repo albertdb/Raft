@@ -12,7 +12,7 @@ module.exports.numNodes=numNodes;
 clientSocket['identity']='c'+id;
 clientSocket.connect(routerAddress);
 function sendMessageToServer(destination,message){
-    console.log(message);
+    console.log('Client: ',message);
     clientSocket.send(['','s'+destination,'',message]);
 }
 clientSocket.on('message',function(){
@@ -24,7 +24,7 @@ clientSocket.on('message',function(){
 
 var server=require('./server');
 server.on('result',function(err,clientSeqNum,value){
-    if(value) console.log(clientSeqNum+' '+value);
+    if(value) console.log(clientSeqNum,' ',value);
 });
 
 function replyNewEntry(clientSeqNum,success,leaderId){
@@ -54,5 +54,5 @@ function autoPutGetRequest(){
 //Aux functions
 function showArguments(a) {
 for(var k in a)
-console.log('\tPart', k, ':', a[k].toString());
+console.log('\tClient: Part', k, ':', a[k].toString());
 };
