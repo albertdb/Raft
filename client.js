@@ -1,7 +1,7 @@
 var id=process.argv[2],
     routerAddress=process.argv[3],
     numNodes=process.argv[4],
-    clientSeqNum=1;
+    seqNum=1;
     zmq=require('zmq'),
     clientSocket = zmq.socket('dealer');
     
@@ -30,7 +30,7 @@ server.on('result',function(err,clientSeqNum,value){
 function replyNewEntry(clientSeqNum,success,leaderId){
     if(success&&clientSeqNum%2!=0){
         var command2={type: 'GET', key: 'a'};
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum++, command: command2});
+        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: seqNum++, command: command2});
         sendMessageToServer(leaderId,message);
     }
 }
@@ -41,12 +41,12 @@ function autoPutGetRequest(){
     var command={type: 'PUT', key: 'a', value: (new Date()).toISOString()};
     var command2={type: 'GET', key: 'a'};
     var leaderId;
-    if(leaderId=server.newEntry(id,clientSeqNum++,command)){
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum-1, command: command});
+    if(leaderId=server.newEntry(id,seqNum++,command)){
+        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: seqNum-1, command: command});
         sendMessageToServer(leaderId,message);
     }
-    else if(leaderId=server.newEntry(id,clientSeqNum++,command2)){
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum-1, command: command2});
+    else if(leaderId=server.newEntry(id,seqNum++,command2)){
+        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: seqNum-1, command: command2});
         sendMessageToServer(leaderId,message);
     }
 }
