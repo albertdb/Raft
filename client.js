@@ -42,11 +42,11 @@ function autoPutGetRequest(){
     var command2={type: 'GET', key: 'a'};
     var leaderId;
     if(leaderId=server.newEntry(id,clientSeqNum++,command)){
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum, command: command});
+        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum-1, command: command});
         sendMessageToServer(leaderId,message);
     }
     else if(leaderId=server.newEntry(id,clientSeqNum++,command2)){
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum, command: command2});
+        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: clientSeqNum-1, command: command2});
         sendMessageToServer(leaderId,message);
     }
 }
