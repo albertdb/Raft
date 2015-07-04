@@ -39,7 +39,7 @@ function sendMessageToClient(destination,message){
 
 var electionTimer=setTimeout(electionTimeout,electionTime);
 var heartbeatTimer;
-var newEntryInterval=setInterval(newEntry,1000);
+//var newEntryInterval=setInterval(newAutoEntry,1000);
 var commitInterval=setInterval(commitEntries,commitTime);
 
 for(var i=0; i<(process.argv[4] || module.parent.exports.numNodes); i++){
