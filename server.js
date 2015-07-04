@@ -1,7 +1,8 @@
-var id=process.argv[2],
+var id=process.argv[2] || module.parent.exports.clientId,
     currentTerm=0,
     state='f',
     votedFor=null,
+    lastKnownLeaderId=null,
     log=newLog(),
     commitIndex=0,
     maybeNeedToCommit=false;
@@ -17,14 +18,23 @@ var id=process.argv[2],
     commitTime=1000,
     zmq=require('zmq'),
     socket = zmq.socket('dealer'),
+    clientSocket = zmq.socket('dealer'),
     levelup = require('level'),
-    db = levelup('./'+id+'.db');
+    db = levelup('./'+id+'.db'),
+    EventEmitter = require('events').EventEmitter;
     
 socket['identity']=id;
-socket.connect(process.argv[3]);
+socket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessage(destination,message){
     console.log(message);
     socket.send(['',destination,'',message]);
+}
+
+clientSocket['identity']='s'+id;
+clientSocket.connect(process.argv[3] || module.parent.exports.routerAddress);
+function sendMessageToClient(destination,message){
+    console.log(message);
+    clientSocket.send(['','c'+destination,'',message]);
 }
 
 var electionTimer=setTimeout(electionTimeout,electionTime);
@@ -32,7 +42,7 @@ var heartbeatTimer;
 var newEntryInterval=setInterval(newEntry,1000);
 var commitInterval=setInterval(commitEntries,commitTime);
 
-for(var i=0; i<process.argv[4]; i++){
+for(var i=0; i<(process.argv[4] || module.parent.exports.numNodes); i++){
     if(i!=id) nextIndex[i]=1;
     if(i!=id) matchIndex[i]=0;
 }
@@ -48,12 +58,20 @@ socket.on('message',function(){
     else if(message.rpc=='installSnapshot') installSnapshot(message.term,message.leaderId,message.lastIncludedIndex,message.lastIncludedTerm,message.offset,message.data,message.done);
 });
 
+clientSocket.on('message',function(){
+    var args = Array.apply(null, arguments);
+    showArguments(args);
+    var message=JSON.parse(args[3]);
+    if(message.rpc=='newEntry') newEntry(message.clientId,message.clientSeqNum,message.command);
+});
+
 //RPCs
 
 function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderCommit){
     var message;
     if(term>=currentTerm){
         clearTimeout(electionTimer);
+        lastKnownLeaderId=leaderId;
         if(term>currentTerm){
             /*Term evolution
             process.stdout.write(state);
@@ -254,6 +272,34 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
     }
 }
 
+function newEntry(clientId,clientSeqNum,command){
+    if(state=='l'){
+        var entry=new LogEntry(clientId,clientSeqNum,command,currentTerm);
+        for (var i in nextIndex) {
+            (function(serverId){
+                if(nextIndex[serverId]==log.length){
+                    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
+                    sendMessage(serverId,message);
+                    nextIndex[serverId]+=1;
+                }
+            })(i);
+        }
+        log.push(entry);
+        clearTimeout(heartbeatTimer);
+        heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
+        clearTimeout(electionTimer);
+        electionTimer=setTimeout(electionTimeout,electionTime);
+        if(clientId!=id){
+            var message=JSON.stringify({rpc: 'replyNewEntry', clientSeqNum: clientSeqNum, success: true, leaderId: id});
+            sendMessageToClient(clientId,message);
+        }
+    } else if(clientId==id) return lastKnownLeaderId;
+    else{
+        var message=JSON.stringify({rpc: 'replyNewEntry', clientSeqNum: clientSeqNum, success: false, leaderId: lastKnownLeaderId});
+        sendMessageToClient(clientId,message);
+    }
+}
+
 //Timeout functions
 
 function electionTimeout(){
@@ -288,10 +334,10 @@ function heartbeatTimeout(){
     electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
-function newEntry(){
+function newAutoEntry(){
     if(state=='l'){
-        var entry=new LogEntry(id,{type: 'PUT', key: log.length, value: (new Date()).toISOString()},currentTerm);
-        var entry2=new LogEntry(id,{type: 'GET', key: log.length},currentTerm);
+        var entry=new LogEntry(id,0,{type: 'PUT', key: log.length, value: (new Date()).toISOString()},currentTerm);
+        var entry2=new LogEntry(id,0,{type: 'GET', key: log.length},currentTerm);
         for (var i in nextIndex) {
             (function(serverId){
                 if(nextIndex[serverId]==log.length){
@@ -343,12 +389,13 @@ function processEntries(upTo){
                             if (err) {
                                 if (err.notFound) {
                                     // handle a 'NotFoundError' here
-                                    return
+                                    //return
                                 }
                                 // I/O or other error, throw it
-                                throw err;
+                                else throw err;
                             }
-                            console.log(log[entryIndex].command.key, '=', value);
+                            //console.log(log[entryIndex].command.key, '=', value);
+                            module.exports.emit('result',err,log[entryIndex].clientSeqNum,value);
                             lastApplied=entryIndex;
                             setImmediate(processEntries,processEntries.upTo);
                             processEntries.upTo=undefined;
@@ -366,6 +413,7 @@ function processEntries(upTo){
                             // I/O or other error, throw it
                             throw err;
                         }
+                        if(log[entryIndex].clientId==id) module.exports.emit('result',err,log[entryIndex].clientSeqNum);
                         lastApplied=entryIndex;
                         setImmediate(processEntries,processEntries.upTo);
                         processEntries.upTo=undefined;
@@ -377,6 +425,7 @@ function processEntries(upTo){
                             // I/O or other error, throw it
                             throw err;
                         }
+                        if(log[entryIndex].clientId==id) module.exports.emit('result',err,log[entryIndex].clientSeqNum);
                         lastApplied=entryIndex;
                         setImmediate(processEntries,processEntries.upTo);
                         processEntries.upTo=undefined;
@@ -391,8 +440,9 @@ function processEntries(upTo){
 
 //Internal classes
 
-function LogEntry(clientId,command,term){
+function LogEntry(clientId,clientSeqNum,command,term){
     this.clientId=clientId;
+    this.clientSeqNum=clientSeqNum;
     this.command=command;
     this.term=term;
 }
@@ -401,7 +451,7 @@ function LogEntry(clientId,command,term){
 
 function newLog(){
     var log=Object.create(null);
-    log[0]=new LogEntry(id,null,0);
+    log[0]=new LogEntry(id,0,null,0);
     log.firstIndex=0;
     log.length=1;
     log.push=function(value){ this[this.length++]=value; };
@@ -425,3 +475,8 @@ console.log('\tPart', k, ':', a[k].toString());
 function randomInt (low, high) {
     return Math.floor(Math.random() * (high - low) + low);
 }
+
+//Exports
+
+module.exports=new EventEmitter();
+module.exports.newEntry=newEntry;
