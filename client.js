@@ -74,7 +74,7 @@ function dispatch(numEntries){
     var leaderId;
     var commands=[];
     for(var i=0;i<(numEntries||dispatchQueue.length);i++) commands.push(dispatchQueue[i].command);
-    if(lastKnownLeaderId!=id || leaderId=server.newEntry(id,dispatchQueue[0].seqNum,commands)){
+    if(lastKnownLeaderId!=id || (leaderId=server.newEntry(id,dispatchQueue[0].seqNum,commands))){
         if(leaderId) lastKnownLeaderId=leaderId;
         var message=JSON.stringify({rpc: 'newEntry', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
         sendMessageToServer(lastKnownLeaderId,message);
