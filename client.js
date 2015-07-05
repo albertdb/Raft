@@ -65,7 +65,7 @@ function get(key,callback){
 function del(key,callback){
     var command={type: 'DEL', key: key};
     var request=new Request(seqNum++,command,callback);
-    if(dispatchQueue.length==0) setImmediate(dispatch,1);
+    if(dispatchQueue.length==1) setImmediate(dispatch,1);
     dispatchQueue.push(request);
     callbackQueue.push(request);
 }
@@ -73,7 +73,7 @@ function del(key,callback){
 function dispatch(numEntries){
     var leaderId;
     var commands=[];
-    for(var i=0;i<numEntries||dispatchQueue.length;i++) commands.push(dispatchQueue[i].command);
+    for(var i=0;i<(numEntries||dispatchQueue.length);i++) commands.push(dispatchQueue[i].command);
     if(lastKnownLeaderId!=id || leaderId=server.newEntry(id,dispatchQueue[0].seqNum,commands)){
         if(leaderId) lastKnownLeaderId=leaderId;
         var message=JSON.stringify({rpc: 'newEntry', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
