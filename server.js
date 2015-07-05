@@ -62,7 +62,7 @@ clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
     showArguments(args);
     var message=JSON.parse(args[3]);
-    if(message.rpc=='newEntry') newEntry(message.clientId,message.initialClientSeqNum,message.commands);
+    if(message.rpc=='newEntries') newEntries(message.clientId,message.initialClientSeqNum,message.commands);
 });
 
 //RPCs
