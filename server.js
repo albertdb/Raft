@@ -62,7 +62,7 @@ clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
     showArguments(args);
     var message=JSON.parse(args[3]);
-    if(message.rpc=='newEntry') newEntry(message.clientId,message.clientSeqNum,message.command);
+    if(message.rpc=='newEntry') newEntry(message.clientId,message.initialClientSeqNum,message.commands);
 });
 
 //RPCs
@@ -272,30 +272,38 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
     }
 }
 
-function newEntry(clientId,clientSeqNum,command){
+function newEntries(clientId,initialClientSeqNum,commands){
     if(state=='l'){
-        var entry=new LogEntry(clientId,clientSeqNum,command,currentTerm);
-        for (var i in nextIndex) {
-            (function(serverId){
-                if(nextIndex[serverId]==log.length){
-                    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
-                    sendMessage(serverId,message);
-                    nextIndex[serverId]+=1;
-                }
-            })(i);
+        var entries=[]
+        for(var i in commands) entries.push(new LogEntry(clientId,initialClientSeqNum+parseInt(i),commands[i],currentTerm));
+        var found=false;
+        for(var i=log.length-1;i>=log.firstIndex&&!found;i--) 
+            if(log[i].clientId==clientId)
+                if(log[i].clientSeqNum>=initialClientSeqNum) found=true;
+                else break;
+        if(!found){
+            for (var i in nextIndex) {
+                (function(serverId){
+                    if(nextIndex[serverId]==log.length){
+                        var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: entries, leaderCommit: commitIndex});
+                        sendMessage(serverId,message);
+                        nextIndex[serverId]+=entries.length;
+                    }
+                })(i);
+            }
+            for(var i in entries) log.push(entries[i]);
         }
-        log.push(entry);
         clearTimeout(heartbeatTimer);
         heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
         clearTimeout(electionTimer);
         electionTimer=setTimeout(electionTimeout,electionTime);
         if(clientId!=id){
-            var message=JSON.stringify({rpc: 'replyNewEntry', clientSeqNum: clientSeqNum, success: true, leaderId: id});
+            var message=JSON.stringify({rpc: 'replyNewEntry', initialClientSeqNum: initialClientSeqNum, success: true, leaderId: id, numEntries: entries.length});
             sendMessageToClient(clientId,message);
         }
     } else if(clientId==id) return lastKnownLeaderId;
     else{
-        var message=JSON.stringify({rpc: 'replyNewEntry', clientSeqNum: clientSeqNum, success: false, leaderId: lastKnownLeaderId});
+        var message=JSON.stringify({rpc: 'replyNewEntry', initialClientSeqNum: initialClientSeqNum, success: false, leaderId: lastKnownLeaderId});
         sendMessageToClient(clientId,message);
     }
 }
@@ -479,4 +487,4 @@ function randomInt (low, high) {
 //Exports
 
 module.exports=new EventEmitter();
-module.exports.newEntry=newEntry;
+module.exports.newEntries=newEntries;
