@@ -1,7 +1,12 @@
 var id=process.argv[2],
     routerAddress=process.argv[3],
     numNodes=process.argv[4],
-    seqNum=1;
+    seqNum=1,
+    lastKnownLeaderId=id,
+    dispatchQueue=[],
+    callbackQueue=[],
+    replyNewEntryTimer,
+    replyNewEntryTimeLimit=100,
     zmq=require('zmq'),
     clientSocket = zmq.socket('dealer');
     
@@ -19,7 +24,7 @@ clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
     showArguments(args);
     var message=JSON.parse(args[3]);
-    if(message.rpc=='replyNewEntry') replyNewEntry(message.clientSeqNum,message.success,message.leaderId);
+    if(message.rpc=='replyNewEntry') replyNewEntry(message.initialClientSeqNum,message.success,message.leaderId,message.numEntries);
 });
 
 var server=require('./server');
@@ -27,28 +32,73 @@ server.on('result',function(err,clientSeqNum,value){
     if(value) console.log('Client: ',clientSeqNum,' ',value);
 });
 
-function replyNewEntry(clientSeqNum,success,leaderId){
-    if(success&&clientSeqNum%2!=0){
-        var command2={type: 'GET', key: 'a'};
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: seqNum++, command: command2});
-        sendMessageToServer(leaderId,message);
+function replyNewEntry(initialClientSeqNum,success,leaderId,numEntries){
+    if(dispatchQueue[0].seqNum==initialClientSeqNum){
+        clearTimeout(replyNewEntryTimer);
+        if(success){
+            for(var i=0;i<numEntries;i++) dispatchQueue.shift();
+            if(dispatchQueue.length>0) setImmediate(dispatch);
+        }
+        else{
+            lastKnownLeaderId=leaderId;
+            setImmediate(dispatch,numEntries);
+        }
     }
 }
+
+function put(key,value,callback){
+    var command={type: 'PUT', key: key, value: value};
+    var request=new Request(seqNum++,command,callback);
+    if(dispatchQueue.length==0) setImmediate(dispatch,1);
+    dispatchQueue.push(request);
+    callbackQueue.push(request);
+}
+
+function get(key,callback){
+    var command={type: 'GET', key: key};
+    var request=new Request(seqNum++,command,callback);
+    if(dispatchQueue.length==0) setImmediate(dispatch,1);
+    dispatchQueue.push(request);
+    callbackQueue.push(request);
+}
+
+function del(key,callback){
+    var command={type: 'DEL', key: key};
+    var request=new Request(seqNum++,command,callback);
+    if(dispatchQueue.length==0) setImmediate(dispatch,1);
+    dispatchQueue.push(request);
+    callbackQueue.push(request);
+}
+
+function dispatch(numEntries){
+    var leaderId;
+    var commands=[];
+    for(var i=0;i<numEntries||dispatchQueue.length;i++) commands.push(dispatchQueue[i].command);
+    if(lastKnownLeaderId!=id || leaderId=server.newEntry(id,dispatchQueue[0].seqNum,commands){
+        if(leaderId) lastKnownLeaderId=leaderId;
+        var message=JSON.stringify({rpc: 'newEntry', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
+        sendMessageToServer(lastKnownLeaderId,message);
+        replyNewEntryTimer=setTimeout(dispatch,replyNewEntryTimeLimit,numEntries);
+    }
+}
+
+module.exports.put=put;
+module.exports.get=get;
+module.exports.del=del;
 
 var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
 
 function autoPutGetRequest(){
-    var command={type: 'PUT', key: 'a', value: (new Date()).toISOString()};
-    var command2={type: 'GET', key: 'a'};
-    var leaderId;
-    if(leaderId=server.newEntry(id,seqNum++,command)){
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: seqNum-1, command: command});
-        sendMessageToServer(leaderId,message);
-    }
-    else if(leaderId=server.newEntry(id,seqNum++,command2)){
-        var message=JSON.stringify({rpc: 'newEntry', clientId: id, clientSeqNum: seqNum-1, command: command2});
-        sendMessageToServer(leaderId,message);
-    }
+    put('a',(new Date()).toISOString());
+    get('a');
+}
+
+//Internal classes
+
+function Request(seqNum,command,callback){
+    this.seqNum=seqNum;
+    this.command=command;
+    this.callback=callback;
 }
 
 //Aux functions
