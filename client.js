@@ -74,11 +74,15 @@ function dispatch(numEntries){
     var leaderId;
     var commands=[];
     for(var i=0;i<(numEntries||dispatchQueue.length);i++) commands.push(dispatchQueue[i].command);
-    if(dispatchQueue.length>0 && (lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue[0].seqNum,commands)))){
+    if(dispatchQueue.length>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue[0].seqNum,commands))){
         if(leaderId) lastKnownLeaderId=leaderId;
         var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
         sendMessageToServer(lastKnownLeaderId,message);
         replyNewEntryTimer=setTimeout(replyNewEntryTimeout,replyNewEntryTimeLimit,numEntries);
+    }
+    else{
+        for(var i=0;i<numEntries;i++) dispatchQueue.shift();
+        if(dispatchQueue.length>0) setImmediate(dispatch);
     }
 }
 
