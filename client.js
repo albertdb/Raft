@@ -72,6 +72,7 @@ function del(key,callback){
 
 function dispatch(numEntries){
     numEntries=numEntries||dispatchQueue.length;
+    numEntries=Math.min(numEntries,dispatchQueue.length);
     var leaderId;
     var commands=[];
     for(var i=0;i<numEntries;i++) commands.push(dispatchQueue[i].command);
