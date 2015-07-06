@@ -1,7 +1,7 @@
 var id=process.argv[2],
     routerAddress=process.argv[3],
     numNodes=process.argv[4],
-    seqNum=1,
+    seqNum=Date.now(),
     lastKnownLeaderId=id,
     dispatchQueue=[],
     callbackQueue=[],
