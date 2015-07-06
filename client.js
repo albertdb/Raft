@@ -78,13 +78,18 @@ function dispatch(numEntries){
         if(leaderId) lastKnownLeaderId=leaderId;
         var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
         sendMessageToServer(lastKnownLeaderId,message);
-        replyNewEntryTimer=setTimeout(dispatch,replyNewEntryTimeLimit,numEntries);
+        replyNewEntryTimer=setTimeout(replyNewEntryTimeout,replyNewEntryTimeLimit,numEntries);
     }
 }
 
 module.exports.put=put;
 module.exports.get=get;
 module.exports.del=del;
+
+function replyNewEntryTimeout(numEntries){
+    lastKnownLeaderId=id;
+    setImmediate(dispatch,numEntries);
+}
 
 var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
 
