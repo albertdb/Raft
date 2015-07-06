@@ -41,7 +41,7 @@ function replyNewEntry(initialClientSeqNum,success,leaderId,numEntries){
         }
         else{
             lastKnownLeaderId=leaderId;
-            setImmediate(dispatch,numEntries);
+            setImmediate(dispatch);
         }
     }
 }
