@@ -33,7 +33,7 @@ server.on('result',function(err,clientSeqNum,value){
 });
 
 function replyNewEntry(initialClientSeqNum,success,leaderId,numEntries){
-    if(dispatchQueue[0].seqNum==initialClientSeqNum){
+    if(dispatchQueue.length>0&&dispatchQueue[0].seqNum==initialClientSeqNum){
         clearTimeout(replyNewEntryTimer);
         if(success){
             for(var i=0;i<numEntries;i++) dispatchQueue.shift();
