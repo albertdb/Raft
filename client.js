@@ -65,16 +65,17 @@ function get(key,callback){
 function del(key,callback){
     var command={type: 'DEL', key: key};
     var request=new Request(seqNum++,command,callback);
-    if(dispatchQueue.length==1) setImmediate(dispatch,1);
+    if(dispatchQueue.length==0) setImmediate(dispatch,1);
     dispatchQueue.push(request);
     callbackQueue.push(request);
 }
 
 function dispatch(numEntries){
+    numEntries=numEntries||dispatchQueue.length;
     var leaderId;
     var commands=[];
-    for(var i=0;i<(numEntries||dispatchQueue.length);i++) commands.push(dispatchQueue[i].command);
-    if(dispatchQueue.length>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue[0].seqNum,commands))){
+    for(var i=0;i<numEntries;i++) commands.push(dispatchQueue[i].command);
+    if(numEntries>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue[0].seqNum,commands))){
         if(leaderId) lastKnownLeaderId=leaderId;
         var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
         sendMessageToServer(lastKnownLeaderId,message);
