@@ -72,7 +72,7 @@ function del(key,callback){
 
 function dispatch(numEntries){
     numEntries=numEntries||dispatchQueue.length;
-    numEntries=Math.min(numEntries,dispatchQueue.length);
+    //numEntries=Math.min(numEntries,dispatchQueue.length);
     var leaderId;
     var commands=[];
     for(var i=0;i<numEntries;i++) commands.push(dispatchQueue[i].command);
@@ -94,7 +94,7 @@ module.exports.del=del;
 
 function replyNewEntryTimeout(numEntries){
     lastKnownLeaderId=id;
-    setImmediate(dispatch,numEntries);
+    dispatch(numEntries);
 }
 
 var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
