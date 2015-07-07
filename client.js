@@ -109,10 +109,10 @@ var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
 
 function autoPutGetRequest(){
     put('a',(new Date()).toISOString(),function(err){
-        if(error) Console.log('Client error: ',err);
+        if(err) Console.log('Client error: ',err);
     });
     get('a',function(err,value){
-        if(error) Console.log('Client error: ',err);
+        if(err) Console.log('Client error: ',err);
         if(value) console.log('Client value: a=',value);
     });
 }
