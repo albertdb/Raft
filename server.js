@@ -5,7 +5,7 @@ var id=process.argv[2] || module.parent.exports.clientId,
     lastKnownLeaderId=null,
     log=newLog(),
     commitIndex=0,
-    maybeNeedToCommit=false;
+    maybeNeedToCommit=false,
     lastApplied=0,
     maxAppliedEntriesInLog=10000,
     nextIndex=Object.create(null),
@@ -298,12 +298,12 @@ function newEntries(clientId,initialClientSeqNum,commands){
         clearTimeout(electionTimer);
         electionTimer=setTimeout(electionTimeout,electionTime);
         if(clientId!=id){
-            var message=JSON.stringify({rpc: 'replyNewEntry', initialClientSeqNum: initialClientSeqNum, success: true, leaderId: id, numEntries: entries.length});
+            var message=JSON.stringify({rpc: 'replyNewEntries', initialClientSeqNum: initialClientSeqNum, success: true, leaderId: id, numEntries: entries.length});
             sendMessageToClient(clientId,message);
         }
     } else if(clientId==id) return lastKnownLeaderId;
     else{
-        var message=JSON.stringify({rpc: 'replyNewEntry', initialClientSeqNum: initialClientSeqNum, success: false, leaderId: lastKnownLeaderId});
+        var message=JSON.stringify({rpc: 'replyNewEntries', initialClientSeqNum: initialClientSeqNum, success: false, leaderId: lastKnownLeaderId});
         sendMessageToClient(clientId,message);
     }
 }

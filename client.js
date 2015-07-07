@@ -5,8 +5,8 @@ var id=process.argv[2],
     lastKnownLeaderId=id,
     dispatchQueue=[],
     callbackQueue=[],
-    replyNewEntryTimer,
-    replyNewEntryTimeLimit=100,
+    replyNewEntriesTimer,
+    replyNewEntriesTimeLimit=100,
     zmq=require('zmq'),
     clientSocket = zmq.socket('dealer');
     
@@ -24,7 +24,7 @@ clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
     showArguments(args);
     var message=JSON.parse(args[3]);
-    if(message.rpc=='replyNewEntry') replyNewEntry(message.initialClientSeqNum,message.success,message.leaderId,message.numEntries);
+    if(message.rpc=='replyNewEntries') replyNewEntries(message.initialClientSeqNum,message.success,message.leaderId,message.numEntries);
 });
 
 var server=require('./server');
@@ -40,9 +40,9 @@ server.on('result',function(err,clientSeqNum,value){
     }
 });
 
-function replyNewEntry(initialClientSeqNum,success,leaderId,numEntries){
+function replyNewEntries(initialClientSeqNum,success,leaderId,numEntries){
     if(dispatchQueue.length>0&&dispatchQueue[0].seqNum==initialClientSeqNum){
-        clearTimeout(replyNewEntryTimer);
+        clearTimeout(replyNewEntriesTimer);
         if(success){
             for(var i=0;i<numEntries;i++) dispatchQueue.shift();
             if(dispatchQueue.length>0) setImmediate(dispatch);
@@ -88,7 +88,7 @@ function dispatch(numEntries){
         if(leaderId) lastKnownLeaderId=leaderId;
         var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
         sendMessageToServer(lastKnownLeaderId,message);
-        replyNewEntryTimer=setTimeout(replyNewEntryTimeout,replyNewEntryTimeLimit,numEntries);
+        replyNewEntriesTimer=setTimeout(replyNewEntriesTimeout,replyNewEntriesTimeLimit,numEntries);
     }
     else{
         for(var i=0;i<numEntries;i++) dispatchQueue.shift();
@@ -100,7 +100,7 @@ module.exports.put=put;
 module.exports.get=get;
 module.exports.del=del;
 
-function replyNewEntryTimeout(numEntries){
+function replyNewEntriesTimeout(numEntries){
     lastKnownLeaderId=id;
     dispatch(numEntries);
 }
