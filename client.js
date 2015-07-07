@@ -29,7 +29,15 @@ clientSocket.on('message',function(){
 
 var server=require('./server');
 server.on('result',function(err,clientSeqNum,value){
-    if(value) console.log('Client: ',clientSeqNum,' ',value);
+    //if(value) console.log('Client: ',clientSeqNum,' ',value);
+    while(callbackQueue.length>0&&clientSeqNum>callbackQueue[0].seqNum){
+        if(callbackQueue[0].callback) callbackQueue.shift().callback(new Error('Not executed'));
+        else callbackQueue.shift();
+    }
+    if(callbackQueue.length>0&&clientSeqNum==callbackQueue[0].seqNum){
+        if(callbackQueue[0].callback) callbackQueue.shift().callback(err,value);
+        else callbackQueue.shift();
+    }
 });
 
 function replyNewEntry(initialClientSeqNum,success,leaderId,numEntries){
@@ -100,8 +108,13 @@ function replyNewEntryTimeout(numEntries){
 var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
 
 function autoPutGetRequest(){
-    put('a',(new Date()).toISOString());
-    get('a');
+    put('a',(new Date()).toISOString(),function(err){
+        if(error) Console.log('Client error: ',err);
+    });
+    get('a',function(err,value){
+        if(error) Console.log('Client error: ',err);
+        if(value) console.log('Client value: a=',value);
+    });
 }
 
 //Internal classes
