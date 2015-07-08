@@ -188,7 +188,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
             recoveryMode=false;
             clearTimeout(heartbeatTimer);
         }
-        if((votedFor==null || votedFor==candidateId) && (lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
+        if((votedFor==null || votedFor==candidateId) && (log.length==log.firstIndex || lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
             votedFor=candidateId;
             console.log('Vote granted to candidate ',candidateId,'.');
             message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
