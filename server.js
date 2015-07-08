@@ -167,6 +167,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                         nextIndex[followerId]=lastIncludedIndex+1;
                         matchIndex[followerId]=nextIndex[followerId]-1;
                         console.log('Finished sending DB snapshot to follower ',followerId,'.');
+                        if(log.length==lastIncludedIndex+1) newNullEntry();
                 });
             }
         }
@@ -213,7 +214,7 @@ function replyVote(term,voteGranted){
         grantedVotes++;
         console.log('Received vote grant. ',grantedVotes,' of ',Math.ceil((Object.keys(nextIndex).length+1)/2),' required to win.');
         if(grantedVotes>(Object.keys(nextIndex).length+1)/2){
-            console.log("Election win. Say 'Hi' to the new leader.");
+            console.log("Election win. Say 'Hi' to the new almighty leader.");
             state='l';
             grantedVotes=0;
             for (var i in nextIndex) {
@@ -326,6 +327,20 @@ function newEntries(clientId,initialClientSeqNum,commands){
         var message=JSON.stringify({rpc: 'replyNewEntries', initialClientSeqNum: initialClientSeqNum, success: false, leaderId: lastKnownLeaderId});
         sendMessageToClient(clientId,message);
     }
+}
+
+function newNullEntry(){
+    var entry=new LogEntry(id,0,{type: 'NUL'},currentTerm);
+    for (var i in nextIndex) {
+        (function(serverId){
+            if(nextIndex[serverId]==log.length){
+                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
+                sendMessage(serverId,message);
+                nextIndex[serverId]+=1;
+            }
+        })(i);
+    }
+    log.push(entry);
 }
 
 //Timeout functions
@@ -460,6 +475,11 @@ function processEntries(upTo){
                         setImmediate(processEntries,processEntries.upTo);
                         processEntries.upTo=undefined;
                     });
+                    break;
+                default:
+                    lastApplied=entryIndex;
+                    setImmediate(processEntries,processEntries.upTo);
+                    processEntries.upTo=undefined;
                     break;
             }
         }
