@@ -108,11 +108,31 @@ function replyNewEntriesTimeout(numEntries){
 
 var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
 
+var stdin = process.stdin;
+stdin.setRawMode(true);
+stdin.resume();
+stdin.setEncoding('utf8');
+stdin.on('data', function(key) {
+    if (key==='\u0003') {
+        process.exit();
+    }
+    if(key=='1') autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
+    if(key=='2') clearInterval(autoPutGetRequestInterval);
+    if(key=='3') for(var i=0;i<10000;i++){
+        put('a',(new Date()).toISOString(),function(err){
+            if(err) Console.log('Client error: ',err);
+        });
+        get('a',function(err,value){ 
+            if(err) Console.log('Client error: ',err);
+        });
+    }
+});
+
 function autoPutGetRequest(){
     put('a',(new Date()).toISOString(),function(err){
         if(err) Console.log('Client error: ',err);
     });
-    get('a',function(err,value){
+    get('a',function(err,value){ 
         if(err) Console.log('Client error: ',err);
         if(value) console.log('Client value: a=',value);
     });
