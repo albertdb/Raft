@@ -16,6 +16,7 @@ var id=process.argv[2] || module.parent.exports.clientId,
     electionTime=randomInt(1500, 3000),
     heartbeatTime=750,
     commitTime=1000,
+    debug=(process.argv[5]==true || module.parent.exports.debugServer==true),
     zmq=require('zmq'),
     socket = zmq.socket('dealer'),
     clientSocket = zmq.socket('dealer'),
@@ -26,14 +27,14 @@ var id=process.argv[2] || module.parent.exports.clientId,
 socket['identity']=id;
 socket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessage(destination,message){
-    console.log(message);
+    if(debug) console.log(message);
     socket.send(['',destination,'',message]);
 }
 
 clientSocket['identity']='s'+id;
 clientSocket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessageToClient(destination,message){
-    console.log(message);
+    if(debug) console.log(message);
     clientSocket.send(['','c'+destination,'',message]);
 }
 
@@ -49,7 +50,7 @@ for(var i=0; i<(process.argv[4] || module.parent.exports.numNodes); i++){
 
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
-    showArguments(args);
+    if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
     else if(message.rpc=='replyAppendEntries') replyAppendEntries(message.term,message.followerId,message.entriesToAppend,message.success);
@@ -60,7 +61,7 @@ socket.on('message',function(){
 
 clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
-    showArguments(args);
+    if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='newEntries') newEntries(message.clientId,message.initialClientSeqNum,message.commands);
 });
@@ -79,6 +80,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             currentTerm=term;
         }
         if(prevLogIndex<log.length && (log.length==log.firstIndex || log[prevLogIndex].term==prevLogTerm)){
+            if(recoveryMode) console.log('Last matching entry found. Exiting recovery mode.');
             recoveryMode=false;
             for(var entry in entries) log.push(entries[entry]);
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
@@ -90,6 +92,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         }
         else if(!recoveryMode || (recoveryMode && prevLogIndex<recoveryPrevLogIndex)){
             while(prevLogIndex<log.length) log.pop();
+            if(!recoveryMode) console.log('Log is outdated. Entering recovery mode.');
             recoveryMode=true;
             recoveryPrevLogIndex=prevLogIndex;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
@@ -118,10 +121,14 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],Math.min(log.length,nextIndex[followerId]+100)), leaderCommit: commitIndex});
                 sendMessage(followerId,message);
                 nextIndex[followerId]+=Math.min(log.length,nextIndex[followerId]+100)-nextIndex[followerId];
-                if(nextIndex[followerId]==log.length) recoveryMode=false;
+                if(nextIndex[followerId]==log.length){
+                    if(recoveryMode) console.log('Follower ',followerId,' log should be now in sync. Exiting recovery mode.');
+                    recoveryMode=false;
+                }
             }
         }
         else{
+            if(!recoveryMode) console.log('Follower ',followerId,' log is outdated. Entering recovery mode.');
             recoveryMode=true;
             nextIndex[followerId]=entriesToAppend;
             matchIndex[followerId]=nextIndex[followerId]-1;
@@ -131,6 +138,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 nextIndex[followerId]+=1;
             }
             else{
+                console.log('Follower ',followerId,' last log entry is behind oldest entry still stored in the log. Sending DB snapshot.');
                 var dataArray=[];
                 var dataOffset=0;
                 var lastIncludedIndex=lastApplied;
@@ -157,6 +165,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                         delete dataArray;
                         nextIndex[followerId]=lastIncludedIndex+1;
                         matchIndex[followerId]=nextIndex[followerId]-1;
+                        console.log('Finished sending DB snapshot to follower ',followerId,'.');
                 });
             }
         }
@@ -170,7 +179,9 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
             /*Term evolution
             process.stdout.write(state);
             for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
+            console.log('Election in progress.');
             currentTerm=term;
+            if(state=='l') console.log('Demoting to follower state.');
             state='f';
             votedFor=null;
             recoveryMode=false;
@@ -178,6 +189,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
         }
         if((votedFor==null || votedFor==candidateId) && (lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
             votedFor=candidateId;
+            console.log('Vote granted to candidate ',candidateId,'.');
             message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
         }
         else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
@@ -198,8 +210,9 @@ function replyVote(term,voteGranted){
     }
     else if(voteGranted && term==currentTerm){
         grantedVotes++;
+        console.log('Received vote grant. ',grantedVotes,' of ',Math.ceil((Object.keys(nextIndex).length+1)/2),' required to win.');
         if(grantedVotes>(Object.keys(nextIndex).length+1)/2){
-            //console.log("Election win");
+            console.log("Election win. Say 'Hi' to the new leader.");
             state='l';
             grantedVotes=0;
             for (var i in nextIndex) {
@@ -222,13 +235,17 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
         currentTerm=term;
     }
     if(term==currentTerm && offset==0){
+        console.log('Snapshot install request received. Closing current DB.');
         installSnapshot.pendingBatches=1;
         db.close(function(err){
             if(err) throw err;
+            console.log('Destroying current DB.');
             levelup.destroy('./'+id+'.db',function(err){
                 if(err) throw err;
+                console.log('Creating new DB.');
                 db=levelup('./'+id+'.db');
                 db.batch(data, function (err) {
+                    console.log('Installing data...');
                       if(err) throw err;
                       installSnapshot.pendingBatches--;
                       if(done){
@@ -241,6 +258,7 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
                           commitIndex=lastIncludedIndex;
                           lastApplied=lastIncludedIndex;
                           recoveryMode=false;
+                          console.log('Finished installing DB snapshot. Exiting recovery mode.');
                       }
                 })
             });
@@ -263,6 +281,7 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
                         commitIndex=lastIncludedIndex;
                         lastApplied=lastIncludedIndex;
                         recoveryMode=false;
+                        console.log('Finished installing DB snapshot. Exiting recovery mode.');
                     }
                     else setImmediate(installSnapshot,term,leaderId,lastIncludedIndex,lastIncludedTerm,offset,[],done);
                 }
@@ -313,6 +332,8 @@ function newEntries(clientId,initialClientSeqNum,commands){
 function electionTimeout(){
     /*Term evolution
     process.stdout.write(state);*/
+        if(lastKnownLeaderId!=null) console.log('No heartbeat received from leader within time limit. Starting election.');
+        else console.log('No known leader for me. Starting election.');
 		currentTerm++;
 		state='c';
 		votedFor=id;
