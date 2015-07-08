@@ -7,6 +7,7 @@ var id=process.argv[2],
     callbackQueue=[],
     replyNewEntriesTimer,
     replyNewEntriesTimeLimit=100,
+    debug=(process.argv[5]==true || (module.parent && module.parent.exports.debugClient==true)),
     zmq=require('zmq'),
     clientSocket = zmq.socket('dealer');
     
@@ -17,12 +18,12 @@ module.exports.numNodes=numNodes;
 clientSocket['identity']='c'+id;
 clientSocket.connect(routerAddress);
 function sendMessageToServer(destination,message){
-    console.log('Client: ',message);
+    if(debug) console.log('Client: ',message);
     clientSocket.send(['','s'+destination,'',message]);
 }
 clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
-    showArguments(args);
+    if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='replyNewEntries') replyNewEntries(message.initialClientSeqNum,message.success,message.leaderId,message.numEntries);
 });

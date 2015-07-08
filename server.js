@@ -72,6 +72,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
     var message;
     if(term>=currentTerm){
         clearTimeout(electionTimer);
+        if(lastKnownLeaderId!=leaderId) console.log('Election result: ',leaderId,' is the new leader.');
         lastKnownLeaderId=leaderId;
         if(term>currentTerm){
             /*Term evolution
