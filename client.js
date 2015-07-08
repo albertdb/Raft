@@ -118,7 +118,7 @@ stdin.on('data', function(key) {
     }
     if(key=='1') autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
     if(key=='2') clearInterval(autoPutGetRequestInterval);
-    if(key=='3') for(var i=0;i<10000;i++){
+    if(key=='3') for(var i=0;i<3000;i++){
         put('a',(new Date()).toISOString(),function(err){
             if(err) Console.log('Client error: ',err);
         });
