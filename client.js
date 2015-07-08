@@ -106,7 +106,7 @@ function replyNewEntriesTimeout(numEntries){
     dispatch(numEntries);
 }
 
-var autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
+var autoPutGetRequestInterval;
 
 var stdin = process.stdin;
 stdin.setRawMode(true);
