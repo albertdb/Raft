@@ -1,6 +1,6 @@
-var id=process.argv[2],
-    routerAddress=process.argv[3],
-    numNodes=process.argv[4],
+var id=process.argv[2] || module.parent.exports.clientId,
+    routerAddress=process.argv[3] || module.parent.exports.routerAddress,
+    numNodes=process.argv[4] || module.parent.exports.numNodes,
     seqNum=Date.now(),
     lastKnownLeaderId=id,
     dispatchQueue=[],
@@ -14,6 +14,7 @@ var id=process.argv[2],
 module.exports.clientId=id;
 module.exports.routerAddress=routerAddress;
 module.exports.numNodes=numNodes;
+module.exports.debugServer=(process.argv[6]==true || (module.parent && module.parent.exports.debugServer==true));
 
 clientSocket['identity']='c'+id;
 clientSocket.connect(routerAddress);
@@ -108,25 +109,27 @@ function replyNewEntriesTimeout(numEntries){
 
 var autoPutGetRequestInterval;
 
-var stdin = process.stdin;
-stdin.setRawMode(true);
-stdin.resume();
-stdin.setEncoding('utf8');
-stdin.on('data', function(key) {
-    if (key==='\u0003') {
-        process.exit();
-    }
-    if(key=='1') autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
-    if(key=='2') clearInterval(autoPutGetRequestInterval);
-    if(key=='3') for(var i=0;i<3000;i++){
-        put('a',(new Date()).toISOString(),function(err){
-            if(err) Console.log('Client error: ',err);
-        });
-        get('a',function(err,value){ 
-            if(err) Console.log('Client error: ',err);
-        });
-    }
-});
+if(!module.parent){
+    var stdin = process.stdin;
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    stdin.on('data', function(key) {
+        if (key==='\u0003') {
+            process.exit();
+        }
+        if(key=='1') autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
+        if(key=='2') clearInterval(autoPutGetRequestInterval);
+        if(key=='3') for(var i=0;i<3000;i++){
+            put('a',(new Date()).toISOString(),function(err){
+                if(err) Console.log('Client error: ',err);
+            });
+            get('a',function(err,value){ 
+                if(err) Console.log('Client error: ',err);
+            });
+        }
+    });
+}
 
 function autoPutGetRequest(){
     put('a',(new Date()).toISOString(),function(err){
