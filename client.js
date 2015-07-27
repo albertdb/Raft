@@ -127,6 +127,10 @@ if(!module.parent){
             get('a',function(err,value){ 
                 if(err) Console.log('Client error: ',err);
             });
+            if(i==2999) get('a',function(err,value){
+                if(err) Console.log('Client error: ',err);
+                console.log('Client: Request bombing finished.');
+            });
         }
     });
 }
