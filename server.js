@@ -210,7 +210,7 @@ function replyVote(term,voteGranted){
         grantedVotes=0;
         votedFor=null;
     }
-    else if(voteGranted && term==currentTerm){
+    else if(voteGranted && term==currentTerm && state=='c'){
         grantedVotes++;
         console.log('Received vote grant. ',grantedVotes,' of ',Math.ceil((Object.keys(nextIndex).length+1)/2),' required to win.');
         if(grantedVotes>(Object.keys(nextIndex).length+1)/2){
