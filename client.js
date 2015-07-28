@@ -122,13 +122,13 @@ if(!module.parent){
         if(key=='2') clearInterval(autoPutGetRequestInterval);
         if(key=='3') for(var i=0;i<3000;i++){
             put('a',(new Date()).toISOString(),function(err){
-                if(err) Console.log('Client error: ',err);
+                if(err) console.log('Client error: ',err);
             });
             get('a',function(err,value){ 
-                if(err) Console.log('Client error: ',err);
+                if(err) console.log('Client error: ',err);
             });
             if(i==2999) get('a',function(err,value){
-                if(err) Console.log('Client error: ',err);
+                if(err) console.log('Client error: ',err);
                 console.log('Client: Request bombing finished.');
             });
         }
@@ -137,10 +137,10 @@ if(!module.parent){
 
 function autoPutGetRequest(){
     put('a',(new Date()).toISOString(),function(err){
-        if(err) Console.log('Client error: ',err);
+        if(err) console.log('Client error: ',err);
     });
     get('a',function(err,value){ 
-        if(err) Console.log('Client error: ',err);
+        if(err) console.log('Client error: ',err);
         if(value) console.log('Client value: a=',value);
     });
 }
