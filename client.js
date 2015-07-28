@@ -1,6 +1,6 @@
 var id=process.argv[2] || module.parent.exports.clientId,
     routerAddress=process.argv[3] || module.parent.exports.routerAddress,
-    numNodes=process.argv[4] || module.parent.exports.numNodes,
+    clusterMembers=module.parent?module.parent.exports.clusterMembers:JSON.parse(process.argv[4]),
     seqNum=Date.now(),
     lastKnownLeaderId=id,
     dispatchQueue=[],
@@ -13,7 +13,7 @@ var id=process.argv[2] || module.parent.exports.clientId,
     
 module.exports.clientId=id;
 module.exports.routerAddress=routerAddress;
-module.exports.numNodes=numNodes;
+module.exports.clusterMembers=clusterMembers;
 module.exports.debugServer=(process.argv[6]==true || (module.parent && module.parent.exports.debugServer==true));
 
 clientSocket['identity']='c'+id;
@@ -80,6 +80,14 @@ function del(key,callback){
     callbackQueue.push(request);
 }
 
+function newConfig(clusterMembers,callback){
+    var command={type: 'CFG', clusterMembers: clusterMembers};
+    var request=new Request(seqNum++,command,callback);
+    if(dispatchQueue.length==0) setImmediate(dispatch,1);
+    dispatchQueue.push(request);
+    callbackQueue.push(request);
+}
+
 function dispatch(numEntries){
     numEntries=numEntries||dispatchQueue.length;
     numEntries=Math.min(numEntries,dispatchQueue.length); //PARCHE. No tiene efectos secundarios, pero no soluciona el origen del problema. 
@@ -101,6 +109,7 @@ function dispatch(numEntries){
 module.exports.put=put;
 module.exports.get=get;
 module.exports.del=del;
+module.exports.newConfig=newConfig;
 
 function replyNewEntriesTimeout(numEntries){
     lastKnownLeaderId=id;

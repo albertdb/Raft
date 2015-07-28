@@ -1,4 +1,5 @@
 var id=process.argv[2] || module.parent.exports.clientId,
+    clusterMembers=module.parent?module.parent.exports.clusterMembers:JSON.parse(process.argv[4]),
     currentTerm=0,
     state='f',
     votedFor=null,
@@ -43,9 +44,9 @@ var heartbeatTimer;
 //var newEntryInterval=setInterval(newAutoEntry,1000);
 var commitInterval=setInterval(commitEntries,commitTime);
 
-for(var i=0; i<(process.argv[4] || module.parent.exports.numNodes); i++){
-    if(i!=id) nextIndex[i]=1;
-    if(i!=id) matchIndex[i]=0;
+for(var i in clusterMembers){
+    if(clusterMembers[i]!=id) nextIndex[clusterMembers[i]]=1;
+    if(clusterMembers[i]!=id) matchIndex[clusterMembers[i]]=0;
 }
 
 socket.on('message',function(){
@@ -83,7 +84,14 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         if(prevLogIndex<log.length && (log.length==log.firstIndex || log[prevLogIndex].term==prevLogTerm)){
             if(recoveryMode) console.log('Last matching entry found. Exiting recovery mode.');
             recoveryMode=false;
-            for(var entry in entries) log.push(entries[entry]);
+            for(var entry in entries){
+                if(entries[entry].command.type=='CFG'){
+                    clusterMembers=clusterMembers.concat(entries[entry].command.clusterMembers);
+                    clusterMembers.sort();
+                    for (var id in clusterMembers) if(clusterMembers[id]==clusterMembers[id-1]) clusterMembers.splice(id,1);
+                } 
+                log.push(entries[entry]);
+            } 
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: entries.length, success: true});
             if(leaderCommit>commitIndex){
                 commitIndex=Math.min(leaderCommit,log.length-1);
@@ -114,7 +122,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             state='f';
             grantedVotes=0;
             votedFor=null;
-            clearTimeout(heartbeatTimer)
+            clearTimeout(heartbeatTimer);
         }
         else if(success){
             matchIndex[followerId]+=entriesToAppend;
@@ -213,17 +221,17 @@ function replyVote(term,voteGranted){
     }
     else if(voteGranted && term==currentTerm && state=='c'){
         grantedVotes++;
-        console.log('Received vote grant. ',grantedVotes,' of ',Math.ceil((Object.keys(nextIndex).length+1)/2),' required to win.');
-        if(grantedVotes>(Object.keys(nextIndex).length+1)/2){
+        console.log('Received vote grant. ',grantedVotes,' of ',Math.ceil(clusterMembers.length/2+0.01),' required to win.');
+        if(grantedVotes>clusterMembers.length/2){
             console.log("Election win. Say 'Hi' to the new almighty leader.");
             state='l';
             lastKnownLeaderId=id;
             grantedVotes=0;
-            for (var i in nextIndex) {
-                (function(serverId){
+            for (var i in clusterMembers) {
+                if(clusterMembers[i]!=id) (function(serverId){
                     nextIndex[serverId]=log.length;
                     matchIndex[serverId]=log.length-1;
-                })(i);
+                })(clusterMembers[i]);
             }
             heartbeatTimer=setTimeout(heartbeatTimeout,0);
             //NO! votedFor=null;
@@ -305,16 +313,27 @@ function newEntries(clientId,initialClientSeqNum,commands){
                 if(log[i].clientSeqNum>=initialClientSeqNum) found=true;
                 else break;
         if(!found){
-            for (var i in nextIndex) {
-                (function(serverId){
+            for (var i in clusterMembers) {
+                if(clusterMembers[i]!=id) (function(serverId){
                     if(nextIndex[serverId]==log.length){
                         var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: entries, leaderCommit: commitIndex});
                         sendMessage(serverId,message);
                         nextIndex[serverId]+=entries.length;
                     }
-                })(i);
+                })(clusterMembers[i]);
             }
-            for(var i in entries) log.push(entries[i]);
+            for(var entry in entries){
+                if(entries[entry].command.type=='CFG'){
+                    clusterMembers=clusterMembers.concat(entries[entry].command.clusterMembers);
+                    clusterMembers.sort();
+                    for (var id in clusterMembers) if(clusterMembers[id]==clusterMembers[id-1]) clusterMembers.splice(id,1);
+                    for (var id in clusterMembers) if(!nextIndex.hasOwnProperty(id)){
+                        nextIndex[id]=log.length;
+                        matchIndex[id]=log.length-1;
+                    }
+                } 
+                log.push(entries[entry]);
+            } 
         }
         clearTimeout(heartbeatTimer);
         heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
@@ -333,14 +352,14 @@ function newEntries(clientId,initialClientSeqNum,commands){
 
 function newNullEntry(){
     var entry=new LogEntry(id,0,{type: 'NUL'},currentTerm);
-    for (var i in nextIndex) {
-        (function(serverId){
+    for (var i in clusterMembers) {
+        if(clusterMembers[i]!=id) (function(serverId){
             if(nextIndex[serverId]==log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
                 sendMessage(serverId,message);
                 nextIndex[serverId]+=1;
             }
-        })(i);
+        })(clusterMembers[i]);
     }
     log.push(entry);
 }
@@ -350,34 +369,34 @@ function newNullEntry(){
 function electionTimeout(){
     /*Term evolution
     process.stdout.write(state);*/
-        if(lastKnownLeaderId!=null) console.log('No heartbeat received from leader within time limit. Starting election.');
-        else console.log('No known leader for me. Starting election.');
-		currentTerm++;
-		state='c';
-		votedFor=id;
-		grantedVotes=1
-		for (var i in nextIndex) {
-        (function(serverId){
+    if(lastKnownLeaderId!=null) console.log('No heartbeat received from leader within time limit. Starting election.');
+    else console.log('No known leader for me. Starting election.');
+	currentTerm++;
+	state='c';
+	votedFor=id;
+	grantedVotes=1
+	for (var i in clusterMembers) {
+        if(clusterMembers[i]!=id) (function(serverId){
             var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id, lastLogIndex: log.length-1, lastLogTerm: log[log.length-1].term});
             sendMessage(serverId,message);
-        })(i);
-		}
-		clearTimeout(electionTimer);
-		electionTimer=setTimeout(electionTimeout,electionTime);
+        })(clusterMembers[i]);
+	}
+	clearTimeout(electionTimer);
+	electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
 function heartbeatTimeout(){
-		for (var i in nextIndex) {
-        (function(serverId){
+	for (var i in clusterMembers) {
+        if(clusterMembers[i]!=id) (function(serverId){
             if(nextIndex[serverId]==log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [], leaderCommit: commitIndex});
                 sendMessage(serverId,message);
             }
-        })(i);
-		}
-		clearTimeout(heartbeatTimer);
-		heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
-		clearTimeout(electionTimer);
+        })(clusterMembers[i]);
+	}
+	clearTimeout(heartbeatTimer);
+	heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
+	clearTimeout(electionTimer);
     electionTimer=setTimeout(electionTimeout,electionTime);
 }
 
@@ -385,14 +404,14 @@ function newAutoEntry(){
     if(state=='l'){
         var entry=new LogEntry(id,0,{type: 'PUT', key: log.length, value: (new Date()).toISOString()},currentTerm);
         var entry2=new LogEntry(id,0,{type: 'GET', key: log.length},currentTerm);
-        for (var i in nextIndex) {
-            (function(serverId){
+        for (var i in clusterMembers) {
+            if(clusterMembers[i]!=id) (function(serverId){
                 if(nextIndex[serverId]==log.length){
                     var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry,entry2], leaderCommit: commitIndex});
                     sendMessage(serverId,message);
                     nextIndex[serverId]+=2;
                 }
-            })(i);
+            })(clusterMembers[i]);
         }
         log.push(entry);
         log.push(entry2);
@@ -406,16 +425,26 @@ function newAutoEntry(){
 function commitEntries(){
     if(maybeNeedToCommit){
         var newCommitIndex=commitIndex-1;
-        var numReplicas;
+        var numReplicas, numReplicasNewCfg;
         do{
             newCommitIndex++;
             numReplicas=1;
-            for (var i in matchIndex) {
-                (function(serverId){
+            for (var i in clusterMembers) {
+                if(clusterMembers[i]!=id) (function(serverId){
                     if(matchIndex[serverId]>=newCommitIndex+1) numReplicas++;
-                })(i);
+                })(clusterMembers[i]);
             }
-        } while (numReplicas>(Object.keys(matchIndex).length+1)/2);
+            if(numReplicas>1 && log[newCommitIndex+1].command.type=='CFG' || commitEntries.newCfg){
+                if(!commitEntries.newCfg) commitEntries.newCfg=log[newCommitIndex+1].command.clusterMembers;
+                numReplicasNewCfg=0;
+                for (var i in commitEntries.newCfg) {
+                    if(commitEntries.newCfg[i]!=id) (function(serverId){
+                        if(matchIndex[serverId]>=newCommitIndex+1) numReplicasNewCfg++;
+                    })(commitEntries.newCfg[i]);
+                    else numReplicasNewCfg++;
+                }
+            }
+        } while (numReplicas>(Object.keys(matchIndex).length+1)/2 && (!commitEntries.newCfg || commitEntries.newCfg && numReplicasNewCfg==commitEntries.newCfg.length));
         if(log[newCommitIndex].term==currentTerm){
             commitIndex=newCommitIndex;
             setImmediate(processEntries,commitIndex+1);
@@ -478,6 +507,14 @@ function processEntries(upTo){
                         processEntries.upTo=undefined;
                     });
                     break;
+                case 'CFG':
+                    delete commitEntries.newCfg;
+                    clusterMembers=log[entryIndex].command.clusterMembers;
+                    if(clusterMembers.indexOf(id)<0){
+                        if(state=='l') heartbeatTimeout();
+                        process.exit();
+                    } 
+                    if(log[entryIndex].clientId==id) module.exports.emit('result',undefined,log[entryIndex].clientSeqNum);
                 default:
                     lastApplied=entryIndex;
                     setImmediate(processEntries,processEntries.upTo);

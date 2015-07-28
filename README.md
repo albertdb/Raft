@@ -12,21 +12,21 @@
 ### Router
 `node router.js 12345`
 ### Node
-`node server.js <id> <router address> <number of nodes> <debug server>`
+`node server.js <id> <router address> <cluster members IDs> <debug server>`
 #### Node 0
-`node server.js 0 tcp://localhost:12345 3 false`
+`node server.js 0 tcp://localhost:12345 "[0,1,2]" false`
 #### Node 1
-`node server.js 1 tcp://localhost:12345 3 false`
+`node server.js 1 tcp://localhost:12345 "[0,1,2]" false`
 #### Node 2
-`node server.js 2 tcp://localhost:12345 3 false`
+`node server.js 2 tcp://localhost:12345 "[0,1,2]" false`
 ### Client
-`node client.js <id> <router address> <number of nodes> <debug client> <debug server>`
+`node client.js <id> <router address> <cluster members IDs> <debug client> <debug server>`
 ### Interface (requiring client.js as a module)
 **Before** doing the require of client.js, you should export, in your own application, Raft parameters:
 ```
 module.exports.clientId=<id>;
 module.exports.routerAddress=<router address>;
-module.exports.numNodes=<number of nodes>;
+module.exports.clusterMembers=<cluster members IDs>;
 module.exports.debugServer=<debug client>;
 module.exports.debugServer=<debug server>;
 ```
@@ -34,7 +34,7 @@ Continuing the example:
 ```
 module.exports.clientId=0;
 module.exports.routerAddress='tcp://localhost:12345';
-module.exports.numNodes=3;
+module.exports.clusterMembers=[0,1,2];
 module.exports.debugServer=false;
 module.exports.debugServer=false;
 ```
