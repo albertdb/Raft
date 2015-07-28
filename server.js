@@ -327,7 +327,7 @@ function newEntries(clientId,initialClientSeqNum,commands){
                     clusterMembers=clusterMembers.concat(entries[entry].command.clusterMembers);
                     clusterMembers.sort();
                     for (var i in clusterMembers) if(clusterMembers[i]==clusterMembers[i-1]) clusterMembers.splice(i,1);
-                    for (var i in clusterMembers) if(!nextIndex.hasOwnProperty(clusterMembers[i])){
+                    for (var i in clusterMembers) if(!nextIndex[clusterMembers[i]]){
                         nextIndex[clusterMembers[i]]=log.length;
                         matchIndex[clusterMembers[i]]=log.length-1;
                     }
