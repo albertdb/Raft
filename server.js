@@ -434,7 +434,7 @@ function commitEntries(){
                     if(matchIndex[serverId]>=newCommitIndex+1) numReplicas++;
                 })(clusterMembers[i]);
             }
-            if(numReplicas>1 && log[newCommitIndex+1].command.type=='CFG' || commitEntries.newCfg){
+            if(numReplicas>1 && log[newCommitIndex+1].term==currentTerm && log[newCommitIndex+1].command.type=='CFG' || commitEntries.newCfg){
                 if(!commitEntries.newCfg) commitEntries.newCfg=log[newCommitIndex+1].command.clusterMembers;
                 numReplicasNewCfg=0;
                 for (var i in commitEntries.newCfg) {
