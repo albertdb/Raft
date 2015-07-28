@@ -196,7 +196,6 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
             state='f';
             votedFor=null;
             recoveryMode=false;
-            delete commitEntries.newCfg;
             clearTimeout(heartbeatTimer);
         }
         if((votedFor==null || votedFor==candidateId) && (log.length==log.firstIndex || lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
@@ -446,6 +445,7 @@ function commitEntries(){
                 }
             }
         } while (numReplicas>(Object.keys(matchIndex).length+1)/2 && (!commitEntries.newCfg || commitEntries.newCfg && numReplicasNewCfg==commitEntries.newCfg.length));
+        delete commitEntries.newCfg;
         if(log[newCommitIndex].term==currentTerm){
             commitIndex=newCommitIndex;
             setImmediate(processEntries,commitIndex+1);
@@ -509,7 +509,6 @@ function processEntries(upTo){
                     });
                     break;
                 case 'CFG':
-                    delete commitEntries.newCfg;
                     if(state=='l') heartbeatTimeout();
                     clusterMembers=log[entryIndex].command.clusterMembers;
                     if(clusterMembers.indexOf(id)<0) process.exit();
