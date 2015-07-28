@@ -88,7 +88,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
                 if(entries[entry].command.type=='CFG'){
                     clusterMembers=clusterMembers.concat(entries[entry].command.clusterMembers);
                     clusterMembers.sort();
-                    for (var id in clusterMembers) if(clusterMembers[id]==clusterMembers[id-1]) clusterMembers.splice(id,1);
+                    for (var i in clusterMembers) if(clusterMembers[i]==clusterMembers[i-1]) clusterMembers.splice(i,1);
                 } 
                 log.push(entries[entry]);
             } 
@@ -326,10 +326,10 @@ function newEntries(clientId,initialClientSeqNum,commands){
                 if(entries[entry].command.type=='CFG'){
                     clusterMembers=clusterMembers.concat(entries[entry].command.clusterMembers);
                     clusterMembers.sort();
-                    for (var id in clusterMembers) if(clusterMembers[id]==clusterMembers[id-1]) clusterMembers.splice(id,1);
-                    for (var id in clusterMembers) if(!nextIndex.hasOwnProperty(id)){
-                        nextIndex[id]=log.length;
-                        matchIndex[id]=log.length-1;
+                    for (var i in clusterMembers) if(clusterMembers[i]==clusterMembers[i-1]) clusterMembers.splice(i,1);
+                    for (var i in clusterMembers) if(!nextIndex.hasOwnProperty(clusterMembers[i])){
+                        nextIndex[clusterMembers[i]]=log.length;
+                        matchIndex[clusterMembers[i]]=log.length-1;
                     }
                 } 
                 log.push(entries[entry]);
