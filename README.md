@@ -14,11 +14,11 @@
 ### Node
 `node server.js <id> <router address> <cluster members IDs> <debug server>`
 #### Node 0
-`node server.js 0 tcp://localhost:12345 ['0','1','2'] false`
+`node server.js 0 tcp://localhost:12345 '["0","1","2"]' false`
 #### Node 1
-`node server.js 1 tcp://localhost:12345 ['0','1','2'] false`
+`node server.js 1 tcp://localhost:12345 '["0","1","2"]' false`
 #### Node 2
-`node server.js 2 tcp://localhost:12345 ['0','1','2'] false`
+`node server.js 2 tcp://localhost:12345 '["0","1","2"]' false`
 ### Client
 `node client.js <id> <router address> <cluster members IDs> <debug client> <debug server>`
 ### Interface (requiring client.js as a module)
