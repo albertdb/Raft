@@ -217,6 +217,7 @@ function replyVote(term,voteGranted){
         if(grantedVotes>(Object.keys(nextIndex).length+1)/2){
             console.log("Election win. Say 'Hi' to the new almighty leader.");
             state='l';
+            lastKnownLeaderId=id;
             grantedVotes=0;
             for (var i in nextIndex) {
                 (function(serverId){
