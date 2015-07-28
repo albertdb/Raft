@@ -196,6 +196,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
             state='f';
             votedFor=null;
             recoveryMode=false;
+            delete commitEntries.newCfg;
             clearTimeout(heartbeatTimer);
         }
         if((votedFor==null || votedFor==candidateId) && (log.length==log.firstIndex || lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
