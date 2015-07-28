@@ -114,6 +114,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             state='f';
             grantedVotes=0;
             votedFor=null;
+            clearTimeout(heartbeatTimer)
         }
         else if(success){
             matchIndex[followerId]+=entriesToAppend;
