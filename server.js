@@ -509,11 +509,9 @@ function processEntries(upTo){
                     break;
                 case 'CFG':
                     delete commitEntries.newCfg;
+                    if(state=='l') heartbeatTimeout();
                     clusterMembers=log[entryIndex].command.clusterMembers;
-                    if(clusterMembers.indexOf(id)<0){
-                        if(state=='l') heartbeatTimeout();
-                        process.exit();
-                    } 
+                    if(clusterMembers.indexOf(id)<0) process.exit();
                     if(log[entryIndex].clientId==id) module.exports.emit('result',undefined,log[entryIndex].clientSeqNum);
                 default:
                     lastApplied=entryIndex;
