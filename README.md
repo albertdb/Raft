@@ -24,7 +24,7 @@
 ### Interface (requiring client.js as a module)
 **Before** doing the require of client.js, you should export, in your own application, Raft parameters:
 ```
-module.exports.clientId=<id>;
+module.exports.clientId='<id>';
 module.exports.routerAddress=<router address>;
 module.exports.clusterMembers=<cluster members IDs>;
 module.exports.debugServer=<debug client>;
@@ -32,7 +32,7 @@ module.exports.debugServer=<debug server>;
 ```
 Continuing the example:
 ```
-module.exports.clientId=0;
+module.exports.clientId='0';
 module.exports.routerAddress='tcp://localhost:12345';
 module.exports.clusterMembers=[0,1,2];
 module.exports.debugServer=false;
