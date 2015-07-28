@@ -1,4 +1,4 @@
-var debug=process.argv[3]==true,
+var debug=process.argv[3]=="true",
     zmq=require('zmq'),
     router=zmq.socket('router');
 

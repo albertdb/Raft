@@ -7,14 +7,14 @@ var id=process.argv[2] || module.parent.exports.clientId,
     callbackQueue=[],
     replyNewEntriesTimer,
     replyNewEntriesTimeLimit=100,
-    debug=(process.argv[5]==true || (module.parent && module.parent.exports.debugClient==true)),
+    debug=(process.argv[5]=="true" || (module.parent && module.parent.exports.debugClient==true)),
     zmq=require('zmq'),
     clientSocket = zmq.socket('dealer');
     
 module.exports.clientId=id;
 module.exports.routerAddress=routerAddress;
 module.exports.clusterMembers=clusterMembers;
-module.exports.debugServer=(process.argv[6]==true || (module.parent && module.parent.exports.debugServer==true));
+module.exports.debugServer=(process.argv[6]=="true" || (module.parent && module.parent.exports.debugServer==true));
 
 clientSocket['identity']='c'+id;
 clientSocket.connect(routerAddress);
