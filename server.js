@@ -53,7 +53,7 @@ socket.on('message',function(){
     var args = Array.apply(null, arguments);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
-    if(clusterMembers.indexOf(args[1].toString())>=0) if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
+    if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
     else if(message.rpc=='replyAppendEntries') replyAppendEntries(message.term,message.followerId,message.entriesToAppend,message.success);
     else if(message.rpc=='requestVote') requestVote(message.term,message.candidateId,message.lastLogIndex,message.lastLogTerm);
     else if(message.rpc=='replyVote') replyVote(message.term,message.voteGranted);
@@ -113,7 +113,7 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
 }
 
 function replyAppendEntries(term,followerId,entriesToAppend,success){
-    if(state=='l'){
+    if(state=='l' && term>=currentTerm){
         if(term>currentTerm){
             /*Term evolution
             process.stdout.write(state);
@@ -184,29 +184,32 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
 }
 
 function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
-    var message;
-    if(term>=currentTerm){
-        if(term>currentTerm){
-            /*Term evolution
-            process.stdout.write(state);
-            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
-            console.log('Election in progress.');
-            currentTerm=term;
-            if(state=='l') console.log('Demoting to follower state.');
-            state='f';
-            votedFor=null;
-            recoveryMode=false;
-            clearTimeout(heartbeatTimer);
-        }
-        if((votedFor==null || votedFor==candidateId) && (log.length==log.firstIndex || lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
-            votedFor=candidateId;
-            console.log('Vote granted to candidate ',candidateId,'.');
-            message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
+    if(clusterMembers.indexOf(candidateId)>=0){
+        var message;
+        if(term>=currentTerm){
+            if(term>currentTerm){
+                /*Term evolution
+                process.stdout.write(state);
+                for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
+                console.log('Election in progress.');
+                currentTerm=term;
+                if(state=='l') console.log('Demoting to follower state.');
+                state='f';
+                votedFor=null;
+                recoveryMode=false;
+                clearTimeout(heartbeatTimer);
+            }
+            if((votedFor==null || votedFor==candidateId) && (log.length==log.firstIndex || lastLogTerm>log[log.length-1].term || lastLogTerm==log[log.length-1].term && lastLogIndex>=log.length-1)){
+                votedFor=candidateId;
+                console.log('Vote granted to candidate ',candidateId,'.');
+                message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: true});
+            }
+            else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
         }
         else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
+        sendMessage(candidateId,message);
     }
-    else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
-    sendMessage(candidateId,message);
+    else replyAppendEntries(currentTerm,candidateId,0,false)
 }
 
 function replyVote(term,voteGranted){
