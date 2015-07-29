@@ -173,10 +173,10 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                         sendMessage(followerId,message);
                         delete dataOffset;
                         delete dataArray;
+                        if(log.length==lastIncludedIndex+1) newNullEntry();
                         nextIndex[followerId]=lastIncludedIndex+1;
                         matchIndex[followerId]=nextIndex[followerId]-1;
                         console.log('Finished sending DB snapshot to follower ',followerId,'.');
-                        if(log.length==lastIncludedIndex+1) newNullEntry();
                 });
             }
         }
