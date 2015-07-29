@@ -236,6 +236,7 @@ function replyVote(term,voteGranted){
                     matchIndex[serverId]=log.length-1;
                 })(clusterMembers[i]);
             }
+            newNullEntry();
             heartbeatTimer=setTimeout(heartbeatTimeout,0);
             //NO! votedFor=null;
         }
