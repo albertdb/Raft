@@ -250,6 +250,7 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
         currentTerm=term;
     }
     if(term==currentTerm && offset==0){
+        if(lastKnownLeaderId==null) clearTimeout(electionTimer);
         console.log('Snapshot install request received. Closing current DB.');
         installSnapshot.pendingBatches=1;
         db.close(function(err){
