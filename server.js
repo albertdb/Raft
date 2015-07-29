@@ -209,7 +209,7 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
         else message=JSON.stringify({rpc: 'replyVote', term: currentTerm, voteGranted: false});
         sendMessage(candidateId,message);
     }
-    else replyAppendEntries(currentTerm,candidateId,0,false)
+    else if(!nextIndex[candidateId]) replyAppendEntries(currentTerm,candidateId,0,false)
 }
 
 function replyVote(term,voteGranted){
