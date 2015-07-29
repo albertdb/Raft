@@ -129,12 +129,12 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             maybeNeedToCommit=true;
             if(nextIndex[followerId]<log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],Math.min(log.length,nextIndex[followerId]+100)), leaderCommit: commitIndex});
-                sendMessage(followerId,message);
                 nextIndex[followerId]+=Math.min(log.length,nextIndex[followerId]+100)-nextIndex[followerId];
                 if(nextIndex[followerId]==log.length){
                     if(recoveryMode) console.log('Follower ',followerId,' log should be now in sync. Exiting recovery mode.');
                     recoveryMode=false;
                 }
+                sendMessage(followerId,message);
             }
         }
         else{
@@ -144,8 +144,8 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             matchIndex[followerId]=nextIndex[followerId]-1;
             if(log[nextIndex[followerId]-1]!=undefined){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: [log[nextIndex[followerId]]], leaderCommit: commitIndex});
-                sendMessage(followerId,message);
                 nextIndex[followerId]+=1;
+                sendMessage(followerId,message);
             }
             else{
                 console.log('Follower ',followerId,' last log entry is behind oldest entry still stored in the log. Sending DB snapshot.');
@@ -158,9 +158,9 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                         dataArray.push({type: 'put', key: data.key, value: data.value});
                         if(dataArray.length>99){
                             var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: false});
-                            sendMessage(followerId,message);
                             dataOffset+=dataArray.length;
                             dataArray=[];
+                            sendMessage(followerId,message);
                         }
                 })
                     .on('error', function (err) {
@@ -170,13 +170,13 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 })
                     .on('end', function () {
                         var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: true});
-                        sendMessage(followerId,message);
                         delete dataOffset;
                         delete dataArray;
                         if(log.length==lastIncludedIndex+1) newNullEntry();
                         nextIndex[followerId]=lastIncludedIndex+1;
                         matchIndex[followerId]=nextIndex[followerId]-1;
                         console.log('Finished sending DB snapshot to follower ',followerId,'.');
+                        sendMessage(followerId,message);
                 });
             }
         }
@@ -266,7 +266,6 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
                       installSnapshot.pendingBatches--;
                       if(done){
                           var message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: 0, success: true});
-                          sendMessage(leaderId,message);
                           log=newLog();
                           log.shift();
                           log.firstIndex=lastIncludedIndex+1;
@@ -275,6 +274,7 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
                           lastApplied=lastIncludedIndex;
                           recoveryMode=false;
                           console.log('Finished installing DB snapshot. Exiting recovery mode.');
+                          sendMessage(leaderId,message);
                       }
                 })
             });
@@ -289,7 +289,6 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
                 if(done){
                     if(installSnapshot.pendingBatches==0){
                         var message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: 0, success: true});
-                        sendMessage(leaderId,message);
                         log=newLog();
                         log.shift();
                         log.firstIndex=lastIncludedIndex+1;
@@ -298,6 +297,7 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
                         lastApplied=lastIncludedIndex;
                         recoveryMode=false;
                         console.log('Finished installing DB snapshot. Exiting recovery mode.');
+                        sendMessage(leaderId,message);
                     }
                     else setImmediate(installSnapshot,term,leaderId,lastIncludedIndex,lastIncludedTerm,offset,[],done);
                 }
@@ -321,8 +321,8 @@ function newEntries(clientId,initialClientSeqNum,commands){
                 if(clusterMembers[i]!=id) (function(serverId){
                     if(nextIndex[serverId]==log.length){
                         var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: entries, leaderCommit: commitIndex});
-                        sendMessage(serverId,message);
                         nextIndex[serverId]+=entries.length;
+                        sendMessage(serverId,message);
                     }
                 })(clusterMembers[i]);
             }
@@ -360,8 +360,8 @@ function newNullEntry(){
         if(clusterMembers[i]!=id) (function(serverId){
             if(nextIndex[serverId]==log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
-                sendMessage(serverId,message);
                 nextIndex[serverId]+=1;
+                sendMessage(serverId,message);
             }
         })(clusterMembers[i]);
     }
@@ -412,8 +412,8 @@ function newAutoEntry(){
             if(clusterMembers[i]!=id) (function(serverId){
                 if(nextIndex[serverId]==log.length){
                     var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry,entry2], leaderCommit: commitIndex});
-                    sendMessage(serverId,message);
                     nextIndex[serverId]+=2;
+                    sendMessage(serverId,message);
                 }
             })(clusterMembers[i]);
         }
