@@ -130,11 +130,11 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
             if(nextIndex[followerId]<log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],Math.min(log.length,nextIndex[followerId]+100)), leaderCommit: commitIndex});
                 nextIndex[followerId]+=Math.min(log.length,nextIndex[followerId]+100)-nextIndex[followerId];
+                if(nextIndex[followerId]==log.length){
+                    if(recoveryMode) console.log('Follower ',followerId,' log should be now in sync. Exiting recovery mode.');
+                    recoveryMode=false;
+                }
                 sendMessage(followerId,message);
-            }
-            if(nextIndex[followerId]==log.length){
-                if(recoveryMode) console.log('Follower ',followerId,' log should be now in sync. Exiting recovery mode.');
-                recoveryMode=false;
             }
         }
         else{
