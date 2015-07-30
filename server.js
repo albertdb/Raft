@@ -172,7 +172,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                         var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: true});
                         delete dataOffset;
                         delete dataArray;
-                        if(log.length==lastIncludedIndex+1) newNullEntry();
+                        if(log.length==lastIncludedIndex+1 && state=='l') newNullEntry();
                         nextIndex[followerId]=lastIncludedIndex+1;
                         matchIndex[followerId]=nextIndex[followerId]-1;
                         console.log('Finished sending DB snapshot to follower ',followerId,'.');
