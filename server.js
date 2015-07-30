@@ -152,11 +152,12 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                 var dataOffset=0;
                 var lastIncludedIndex=lastApplied;
                 var lastIncludedTerm=log[lastApplied].term;
+                var actualTerm=currentTerm;
                 db.createReadStream()
                     .on('data', function (data) {
                         dataArray.push({type: 'put', key: data.key, value: data.value});
                         if(dataArray.length>99){
-                            var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: false});
+                            var message=JSON.stringify({rpc: 'installSnapshot', term: actualTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: false});
                             dataOffset+=dataArray.length;
                             dataArray=[];
                             sendMessage(followerId,message);
@@ -168,7 +169,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
                     .on('close', function () {
                 })
                     .on('end', function () {
-                        var message=JSON.stringify({rpc: 'installSnapshot', term: currentTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: true});
+                        var message=JSON.stringify({rpc: 'installSnapshot', term: actualTerm, leaderId: id, lastIncludedIndex: lastIncludedIndex, lastIncludedTerm: lastIncludedTerm, offset: dataOffset, data: dataArray, done: true});
                         delete dataOffset;
                         delete dataArray;
                         if(log.length==lastIncludedIndex+1 && state=='l') newNullEntry();
@@ -249,7 +250,7 @@ function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset
         for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
         currentTerm=term;
     }
-    if(term==currentTerm && offset==0){
+    if(term==currentTerm) if(offset==0){
         if(lastKnownLeaderId==null) clearTimeout(electionTimer);
         console.log('Snapshot install request received. Closing current DB.');
         installSnapshot.pendingBatches=1;
