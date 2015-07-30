@@ -105,7 +105,6 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
             recoveryMode=true;
             recoveryPrevLogIndex=prevLogIndex;
             message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
-            sendMessage(leaderId,message);
         }
     }
     else message=JSON.stringify({rpc: 'replyAppendEntries', term: currentTerm, followerId: id, entriesToAppend: prevLogIndex, success: false});
