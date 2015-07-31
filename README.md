@@ -63,7 +63,7 @@ module.exports.debugServer=false;
 ```
 #### Basic API
 ##### client.put(key, value[, callback])
-put() is the primary method for inserting data into the store. Both the key and value can be arbitrary data objects.
+`put()` is the primary method for inserting data into the store. Both the `key` and `value` can be arbitrary data objects.
 
 The callback argument is optional but if you don't provide one and an error occurs then expect the error to be discarded.
 ```
@@ -73,7 +73,7 @@ client.put('foo', 'bar', function (err) {
 });
 ```
 ##### client.get(key[, callback])
-get() is the primary method for fetching data from the store. The key can be an arbitrary data object. If it doesn't exist in the store then the callback will receive an error as its first argument. A not-found err object will be of type 'NotFoundError' so you can err.type == 'NotFoundError' or you can perform a truthy test on the property err.notFound.
+`get()` is the primary method for fetching data from the store. The `key` can be an arbitrary data object. If it doesn't exist in the store then the callback will receive an error as its first argument. A not-found err object will be of type `'NotFoundError'` so you can `err.type == 'NotFoundError'` or you can perform a truthy test on the property `err.notFound`.
 ```
 client.get('foo', function (err, value) {
   if (err) {
@@ -89,7 +89,7 @@ client.get('foo', function (err, value) {
 })
 ```
 ##### client.del(key[, callback])
-del() is the primary method for removing data from the store.
+`del()` is the primary method for removing data from the store.
 ```
 client.del('foo', function (err) {
   if (err)
@@ -105,6 +105,7 @@ client.del('foo', function (err) {
 - Likewise, no reconfiguration request not including new cluster members should be issued after the snapshot is sent to the first of the new cluster members, as it would also cause the new cluster members to shutdown.
 - Once the new cluster members have finished receiving the snapshot from the leader, the reconfiguration can proceed as described above.
 - Please nota that **all** of the new cluster members should be online and up-to-date to allow the new configuration to be applied. This ensures that fault tolerance is not weakened during transitions.
+
 ##### client.newConfig(clusterMembers[, callback])
 newConfig() is the method for issuing a cluster membership reconfiguration request.
 ```
