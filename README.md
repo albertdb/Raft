@@ -71,6 +71,7 @@ client.put('foo', 'bar', function (err) {
   if (err)
     // handle I/O or other error
 });
+```
 ##### client.get(key[, callback])
 get() is the primary method for fetching data from the store. The key can be an arbitrary data object. If it doesn't exist in the store then the callback will receive an error as its first argument. A not-found err object will be of type 'NotFoundError' so you can err.type == 'NotFoundError' or you can perform a truthy test on the property err.notFound.
 ```
