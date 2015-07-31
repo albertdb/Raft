@@ -1,3 +1,23 @@
+/* 
+* Copyright 2015 Albert Duato Botam
+*  
+* Licensed under the latest draft of EUPL, Version 1.2 or
+-as soon they will be approved by the European Commission-
+the final approved text of the EUPL v1.2 (the "Licence");
+* You may not use this work except in compliance with the
+Licence.
+* You may obtain a copy of the Licence at:
+*  
+* https://github.com/albertdb/Raft/blob/master/LICENCE.pdf
+*  
+* Unless required by applicable law or agreed to in
+writing, software distributed under the Licence is
+distributed on an "AS IS" basis,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+express or implied.
+* See the Licence for the specific language governing
+permissions and limitations under the Licence.
+*/ 
 var id=process.argv[2] || module.parent.exports.clientId,
     routerAddress=process.argv[3] || module.parent.exports.routerAddress,
     clusterMembers=module.parent?module.parent.exports.clusterMembers:JSON.parse(process.argv[4]),
