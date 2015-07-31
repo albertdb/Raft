@@ -104,10 +104,10 @@ client.del('foo', function (err) {
 - Old reconfiguration requests not yet applied will cause the new cluster member to shutdown if any of those entries didn't include the new cluster members, so be sure that the callback of previous reconfigurations requests have been executed before issuing a new one.
 - Likewise, no reconfiguration request not including new cluster members should be issued after the snapshot is sent to the first of the new cluster members, as it would also cause the new cluster members to shutdown.
 - Once the new cluster members have finished receiving the snapshot from the leader, the reconfiguration can proceed as described above.
-- Please nota that **all** of the new cluster members should be online and up-to-date to allow the new configuration to be applied. This ensures that fault tolerance is not weakened during transitions.
+- Please note that **all** of the new cluster members should be online and up-to-date to allow the new configuration to be applied. This ensures that fault tolerance is not weakened during transitions.
 
 ##### client.newConfig(clusterMembers[, callback])
-newConfig() is the method for issuing a cluster membership reconfiguration request.
+`newConfig()` is the method for issuing a cluster membership reconfiguration request.
 ```
 client.newConfig(['0','1','2','3','4'], function (err) {
   if (err)
