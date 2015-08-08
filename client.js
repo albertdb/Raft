@@ -147,16 +147,21 @@ if(!module.parent){
         if (key==='\u0003') {
             process.exit();
         }
-        if(key=='1') autoPutGetRequestInterval=setInterval(autoPutGetRequest,1000);
-        if(key=='2') clearInterval(autoPutGetRequestInterval);
-        if(key=='3') for(var i=0;i<3000;i++){
+        if(key=='0') clearInterval(autoPutGetRequestInterval);
+        if(key=='1') autoPutGetRequestInterval=setInterval(autoPutGetRequest,50,1,true);
+        if(key=='2') autoPutGetRequestInterval=setInterval(autoPutGetRequest,50,5,false);
+        if(key=='3') autoPutGetRequestInterval=setInterval(autoPutGetRequest,50,50,false);
+        if(key=='4') for(var i=0;i<3333;i++){
             put('a',(new Date()).toISOString(),function(err){
                 if(err) console.log('Client error: ',err);
             });
             get('a',function(err,value){ 
                 if(err) console.log('Client error: ',err);
             });
-            if(i==2999) get('a',function(err,value){
+            del('a',function(err){ 
+                if(err) console.log('Client error: ',err);
+            });
+            if(i==3332) get('a',function(err,value){
                 if(err) console.log('Client error: ',err);
                 console.log('Client: Request bombing finished.');
             });
@@ -164,14 +169,16 @@ if(!module.parent){
     });
 }
 
-function autoPutGetRequest(){
+function autoPutGetRequest(num,verbose){
+  for(var i=0;i<num;i++){
     put('a',(new Date()).toISOString(),function(err){
         if(err) console.log('Client error: ',err);
     });
     get('a',function(err,value){ 
         if(err) console.log('Client error: ',err);
-        if(value) console.log('Client value: a=',value);
+        if(verbose) if(value) console.log('Client value: a=',value);
     });
+  }
 }
 
 //Internal classes
