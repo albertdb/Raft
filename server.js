@@ -61,7 +61,8 @@ function sendMessageToClient(destination,message){
 
 var electionTimer=setTimeout(electionTimeout,electionTime);
 var heartbeatTimer;
-var commitInterval=setInterval(commitEntries,commitTime);
+var commitInterval;
+if(commitTime) commitInterval=setInterval(commitEntries,commitTime);
 
 for(var i in clusterMembers){
     if(clusterMembers[i]!=id) nextIndex[clusterMembers[i]]=1;
@@ -139,6 +140,7 @@ function replyAppendEntries(term,followerId,entriesToAppend,success){
         else if(success){
             matchIndex[followerId]+=entriesToAppend;
             maybeNeedToCommit=true;
+            if(!commitTime) setImmediate(commitEntries);
             if(nextIndex[followerId]<log.length){
                 var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: nextIndex[followerId]-1, prevLogTerm: log[nextIndex[followerId]-1].term,entries: log.slice(nextIndex[followerId],Math.min(log.length,nextIndex[followerId]+100)), leaderCommit: commitIndex});
                 nextIndex[followerId]+=Math.min(log.length,nextIndex[followerId]+100)-nextIndex[followerId];
