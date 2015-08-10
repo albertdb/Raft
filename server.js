@@ -61,7 +61,6 @@ function sendMessageToClient(destination,message){
 
 var electionTimer=setTimeout(electionTimeout,electionTime);
 var heartbeatTimer;
-//var newEntryInterval=setInterval(newAutoEntry,1000);
 var commitInterval=setInterval(commitEntries,commitTime);
 
 for(var i in clusterMembers){
@@ -96,9 +95,6 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
         if(lastKnownLeaderId!=leaderId) console.log('Election result: ',leaderId,' is the new leader.');
         lastKnownLeaderId=leaderId;
         if(term>currentTerm){
-            /*Term evolution
-            process.stdout.write(state);
-            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
         }
         if(prevLogIndex<log.length && (log.length==log.firstIndex || log[prevLogIndex].term==prevLogTerm)){
@@ -134,9 +130,6 @@ function appendEntries(term,leaderId,prevLogIndex,prevLogTerm,entries,leaderComm
 function replyAppendEntries(term,followerId,entriesToAppend,success){
     if(state=='l' && term>=currentTerm){
         if(term>currentTerm){
-            /*Term evolution
-            process.stdout.write(state);
-            for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
             currentTerm=term;
             state='f';
             grantedVotes=0;
@@ -208,9 +201,6 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
         var message;
         if(term>=currentTerm){
             if(term>currentTerm){
-                /*Term evolution
-                process.stdout.write(state);
-                for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
                 console.log('Election in progress.');
                 currentTerm=term;
                 if(state=='l') console.log('Demoting to follower state.');
@@ -234,9 +224,6 @@ function requestVote(term,candidateId,lastLogIndex,lastLogTerm){
 
 function replyVote(term,voteGranted){
     if(term>currentTerm){
-        /*Term evolution
-        process.stdout.write(state);
-        for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
         currentTerm=term;
         state='f';
         grantedVotes=0;
@@ -265,9 +252,6 @@ function replyVote(term,voteGranted){
 
 function installSnapshot(term,leaderId,lastIncludedIndex,lastIncludedTerm,offset,data,done){
     if(term>currentTerm){
-        /*Term evolution
-        process.stdout.write(state);
-        for(var i=currentTerm+1;i<term;i++) process.stdout.write(' ');*/
         currentTerm=term;
     }
     if(term==currentTerm) if(offset==0){
@@ -392,8 +376,6 @@ function newNullEntry(){
 //Timeout functions
 
 function electionTimeout(){
-    /*Term evolution
-    process.stdout.write(state);*/
     if(lastKnownLeaderId!=null) console.log('No heartbeat received from leader within time limit. Starting election.');
     else console.log('No known leader for me. Starting election.');
 	currentTerm++;
@@ -423,28 +405,6 @@ function heartbeatTimeout(){
 	heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
 	clearTimeout(electionTimer);
     electionTimer=setTimeout(electionTimeout,electionTime);
-}
-
-function newAutoEntry(){
-    if(state=='l'){
-        var entry=new LogEntry(id,0,{type: 'PUT', key: log.length, value: (new Date()).toISOString()},currentTerm);
-        var entry2=new LogEntry(id,0,{type: 'GET', key: log.length},currentTerm);
-        for (var i in clusterMembers) {
-            if(clusterMembers[i]!=id) (function(serverId){
-                if(nextIndex[serverId]==log.length){
-                    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry,entry2], leaderCommit: commitIndex});
-                    nextIndex[serverId]+=2;
-                    sendMessage(serverId,message);
-                }
-            })(clusterMembers[i]);
-        }
-        log.push(entry);
-        log.push(entry2);
-        clearTimeout(heartbeatTimer);
-        heartbeatTimer=setTimeout(heartbeatTimeout,heartbeatTime);
-        clearTimeout(electionTimer);
-        electionTimer=setTimeout(electionTimeout,electionTime);
-    }
 }
 
 function commitEntries(){
@@ -496,7 +456,6 @@ function processEntries(upTo){
                                 // I/O or other error, throw it
                                 else throw err;
                             }
-                            //console.log(log[entryIndex].command.key, '=', value);
                             module.exports.emit('result',err,log[entryIndex].clientSeqNum,value);
                             lastApplied=entryIndex;
                             setImmediate(processEntries,processEntries.upTo);
