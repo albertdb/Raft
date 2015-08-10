@@ -43,12 +43,14 @@ var id=process.argv[2] || module.parent.exports.clientId,
     clientSocket = zmq.socket('dealer'),
     levelup = require('level'),
     db = levelup('./'+id+'.db'),
+    snappy = require('snappy'),
     EventEmitter = require('events').EventEmitter;
     
 socket['identity']=id;
 socket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessage(destination,message){
     if(debug) console.log(message);
+    message=snappy.compressSync(message);
     socket.send(['',destination,'',message]);
 }
 
@@ -56,6 +58,7 @@ clientSocket['identity']='s'+id;
 clientSocket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessageToClient(destination,message){
     if(debug) console.log(message);
+    message=snappy.compressSync(message);
     clientSocket.send(['','c'+destination,'',message]);
 }
 
@@ -71,6 +74,7 @@ for(var i in clusterMembers){
 
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
+    args[3]=snappy.uncompressSync(args[3]);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
@@ -82,6 +86,7 @@ socket.on('message',function(){
 
 clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
+    args[3]=snappy.uncompressSync(args[3]);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='newEntries') newEntries(message.clientId,message.initialClientSeqNum,message.commands);

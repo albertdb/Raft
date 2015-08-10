@@ -29,7 +29,8 @@ var id=process.argv[2] || module.parent.exports.clientId,
     replyNewEntriesTimeLimit=100,
     debug=(process.argv[5]=="true" || (module.parent && module.parent.exports.debugClient==true)),
     zmq=require('zmq'),
-    clientSocket = zmq.socket('dealer');
+    clientSocket = zmq.socket('dealer'),
+    snappy = require('snappy');
     
 module.exports.clientId=id;
 module.exports.routerAddress=routerAddress;
@@ -40,10 +41,12 @@ clientSocket['identity']='c'+id;
 clientSocket.connect(routerAddress);
 function sendMessageToServer(destination,message){
     if(debug) console.log('Client: ',message);
+    message=snappy.compressSync(message);
     clientSocket.send(['','s'+destination,'',message]);
 }
 clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
+    args[3]=snappy.uncompressSync(args[3]);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='replyNewEntries') replyNewEntries(message.initialClientSeqNum,message.success,message.leaderId,message.numEntries);
