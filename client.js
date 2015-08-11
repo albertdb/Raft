@@ -116,7 +116,7 @@ function newConfig(clusterMembers,callback){
 
 function dispatch(numEntries){
     numEntries=numEntries||dispatchQueue.length;
-    numEntries=Math.min(numEntries,dispatchQueue.length); //PARCHE. No tiene efectos secundarios, pero no soluciona el origen del problema. 
+    numEntries=Math.min(numEntries,dispatchQueue.length,1000); //PARCHE. No tiene efectos secundarios, pero no soluciona el origen del problema. 
     var leaderId;
     var commands=[];
     for(var i=0;i<numEntries;i++) commands.push(dispatchQueue[i].command);
