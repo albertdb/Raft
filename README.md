@@ -50,7 +50,7 @@ permissions and limitations under the Licence.
 module.exports.clientId='<id>';
 module.exports.routerAddress=<router address>;
 module.exports.clusterMembers=<cluster members IDs>;
-module.exports.debugServer=<debug client>;
+module.exports.debugClient=<debug client>;
 module.exports.debugServer=<debug server>;
 ```
 Continuing the example:
@@ -58,7 +58,7 @@ Continuing the example:
 module.exports.clientId='0';
 module.exports.routerAddress='tcp://localhost:12345';
 module.exports.clusterMembers=['0','1','2'];
-module.exports.debugServer=false;
+module.exports.debugClient=false;
 module.exports.debugServer=false;
 ```
 #### Basic API
