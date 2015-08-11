@@ -64,7 +64,7 @@ function sendMessageToClient(destination,message){
     if(message.length<1000) clientSocket.send(['','c'+destination,'',message]);
     else{
         message=snappy.compressSync(message);
-        socket.send(['','c'+destination,'c',message]);
+        clientSocket.send(['','c'+destination,'c',message]);
     }
 }
 
