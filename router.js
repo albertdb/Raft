@@ -32,7 +32,7 @@ router.on('message',function(){
         if(aux[3]=='c') aux[4]=snappy.uncompressSync(aux[4]);
         showArguments(aux);
     }
-    router.send([args[2],'',args[0],'',args[4]]);
+    router.send([args[2],'',args[0],args[3],args[4]]);
 });
 
 //Aux functions
