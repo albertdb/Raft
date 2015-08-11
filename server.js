@@ -50,16 +50,22 @@ socket['identity']=id;
 socket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessage(destination,message){
     if(debug) console.log(message);
-    message=snappy.compressSync(message);
-    socket.send(['',destination,'',message]);
+    if(message.length<1000) socket.send(['',destination,'',message]);
+    else{
+        message=snappy.compressSync(message);
+        socket.send(['',destination,'c',message]);
+    }
 }
 
 clientSocket['identity']='s'+id;
 clientSocket.connect(process.argv[3] || module.parent.exports.routerAddress);
 function sendMessageToClient(destination,message){
     if(debug) console.log(message);
-    message=snappy.compressSync(message);
-    clientSocket.send(['','c'+destination,'',message]);
+    if(message.length<1000) clientSocket.send(['','c'+destination,'',message]);
+    else{
+        message=snappy.compressSync(message);
+        socket.send(['','c'+destination,'c',message]);
+    }
 }
 
 var electionTimer=setTimeout(electionTimeout,electionTime);
@@ -74,7 +80,7 @@ for(var i in clusterMembers){
 
 socket.on('message',function(){
     var args = Array.apply(null, arguments);
-    args[3]=snappy.uncompressSync(args[3]);
+    if(args[2]=='c') args[3]=snappy.uncompressSync(args[3]);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='appendEntries') appendEntries(message.term,message.leaderId,message.prevLogIndex,message.prevLogTerm,message.entries,message.leaderCommit);
@@ -86,7 +92,7 @@ socket.on('message',function(){
 
 clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
-    args[3]=snappy.uncompressSync(args[3]);
+    if(args[2]=='c') args[3]=snappy.uncompressSync(args[3]);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='newEntries') newEntries(message.clientId,message.initialClientSeqNum,message.commands);

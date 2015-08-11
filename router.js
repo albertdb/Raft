@@ -20,13 +20,18 @@ permissions and limitations under the Licence.
 */ 
 var debug=process.argv[3]=="true",
     zmq=require('zmq'),
-    router=zmq.socket('router');
+    router=zmq.socket('router'),
+    snappy = require('snappy');
 
 router.bindSync('tcp://*:'+process.argv[2]);
 
 router.on('message',function(){
     var args = Array.apply(null, arguments);
-    if(debug) showArguments(args);
+    if(debug){
+        var aux=args.slice();
+        if(aux[3]=='c') aux[4]=snappy.uncompressSync(aux[4]);
+        showArguments(aux);
+    }
     router.send([args[2],'',args[0],'',args[4]]);
 });
 

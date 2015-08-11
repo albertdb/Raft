@@ -41,12 +41,15 @@ clientSocket['identity']='c'+id;
 clientSocket.connect(routerAddress);
 function sendMessageToServer(destination,message){
     if(debug) console.log('Client: ',message);
-    message=snappy.compressSync(message);
-    clientSocket.send(['','s'+destination,'',message]);
+    if(message.length<1000) clientSocket.send(['','s'+destination,'',message]);
+    else{
+        message=snappy.compressSync(message);
+        clientSocket.send(['','s'+destination,'c',message]);
+    }
 }
 clientSocket.on('message',function(){
     var args = Array.apply(null, arguments);
-    args[3]=snappy.uncompressSync(args[3]);
+    if(args[2]=='c') args[3]=snappy.uncompressSync(args[3]);
     if(debug) showArguments(args);
     var message=JSON.parse(args[3]);
     if(message.rpc=='replyNewEntries') replyNewEntries(message.initialClientSeqNum,message.success,message.leaderId,message.numEntries);
