@@ -29,7 +29,7 @@ permissions and limitations under the Licence.
 ### Install dependencies (npm)
 `cd Raft`
 
-`npm install zmq level snappy`
+`npm install zmq level snappy double-ended-queue`
 ## Execution
 ### Router
 `node router.js 12345`

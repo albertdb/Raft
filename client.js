@@ -23,8 +23,9 @@ var id=process.argv[2] || module.parent.exports.clientId,
     clusterMembers=module.parent?module.parent.exports.clusterMembers:JSON.parse(process.argv[4]),
     seqNum=Date.now(),
     lastKnownLeaderId=id,
-    dispatchQueue=[],
-    callbackQueue=[],
+    Deque = require("double-ended-queue"),
+    dispatchQueue=new Deque(),
+    callbackQueue=new Deque(),
     replyNewEntriesTimer,
     replyNewEntriesTimeLimit=100,
     debug=(process.argv[5]=="true" || (module.parent && module.parent.exports.debugClient==true)),
@@ -58,18 +59,18 @@ clientSocket.on('message',function(){
 var server=require('./server');
 server.on('result',function(err,clientSeqNum,value){
     //if(value) console.log('Client: ',clientSeqNum,' ',value);
-    while(callbackQueue.length>0&&clientSeqNum>callbackQueue[0].seqNum){
-        if(callbackQueue[0].callback) callbackQueue.shift().callback(new Error('Not executed'));
+    while(callbackQueue.length>0&&clientSeqNum>callbackQueue.peekFront().seqNum){
+        if(callbackQueue.peekFront().callback) callbackQueue.shift().callback(new Error('Not executed'));
         else callbackQueue.shift();
     }
-    if(callbackQueue.length>0&&clientSeqNum==callbackQueue[0].seqNum){
-        if(callbackQueue[0].callback) callbackQueue.shift().callback(err,value);
+    if(callbackQueue.length>0&&clientSeqNum==callbackQueue.peekFront().seqNum){
+        if(callbackQueue.peekFront().callback) callbackQueue.shift().callback(err,value);
         else callbackQueue.shift();
     }
 });
 
 function replyNewEntries(initialClientSeqNum,success,leaderId,numEntries){
-    if(dispatchQueue.length>0&&dispatchQueue[0].seqNum==initialClientSeqNum){
+    if(dispatchQueue.length>0&&dispatchQueue.peekFront().seqNum==initialClientSeqNum){
         clearTimeout(replyNewEntriesTimer);
         if(success){
             for(var i=0;i<numEntries;i++) dispatchQueue.shift();
@@ -119,10 +120,10 @@ function dispatch(numEntries){
     numEntries=Math.min(numEntries,dispatchQueue.length,100); //PARCHE. No tiene efectos secundarios, pero no soluciona el origen del problema. 
     var leaderId;
     var commands=[];
-    for(var i=0;i<numEntries;i++) commands.push(dispatchQueue[i].command);
-    if(numEntries>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue[0].seqNum,commands))){
+    for(var i=0;i<numEntries;i++) commands.push(dispatchQueue.get(i).command);
+    if(numEntries>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue.peekFront().seqNum,commands))){
         if(leaderId) lastKnownLeaderId=leaderId;
-        var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue[0].seqNum, commands: commands});
+        var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue.peekFront().seqNum, commands: commands});
         sendMessageToServer(lastKnownLeaderId,message);
         replyNewEntriesTimer=setTimeout(replyNewEntriesTimeout,replyNewEntriesTimeLimit,numEntries);
     }
