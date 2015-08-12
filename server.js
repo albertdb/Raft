@@ -335,10 +335,10 @@ function newEntries(clientId,initialClientSeqNum,commands){
                 if(log[i].clientSeqNum>=initialClientSeqNum) found=true;
                 else break;
         if(!found){
+            var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: entries, leaderCommit: commitIndex});
             for (var i in clusterMembers) {
                 if(clusterMembers[i]!=id) (function(serverId){
                     if(nextIndex[serverId]==log.length){
-                        var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: entries, leaderCommit: commitIndex});
                         nextIndex[serverId]+=entries.length;
                         sendMessage(serverId,message);
                     }
@@ -374,10 +374,10 @@ function newEntries(clientId,initialClientSeqNum,commands){
 
 function newNullEntry(){
     var entry=new LogEntry(id,0,{type: 'NUL'},currentTerm);
+    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
     for (var i in clusterMembers) {
         if(clusterMembers[i]!=id) (function(serverId){
             if(nextIndex[serverId]==log.length){
-                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [entry], leaderCommit: commitIndex});
                 nextIndex[serverId]+=1;
                 sendMessage(serverId,message);
             }
@@ -395,9 +395,9 @@ function electionTimeout(){
 	state='c';
 	votedFor=id;
 	grantedVotes=1
+    var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id, lastLogIndex: log.length-1, lastLogTerm: log[log.length-1].term});
 	for (var i in clusterMembers) {
         if(clusterMembers[i]!=id) (function(serverId){
-            var message=JSON.stringify({rpc: 'requestVote', term: currentTerm, candidateId: id, lastLogIndex: log.length-1, lastLogTerm: log[log.length-1].term});
             sendMessage(serverId,message);
         })(clusterMembers[i]);
 	}
@@ -406,10 +406,10 @@ function electionTimeout(){
 }
 
 function heartbeatTimeout(){
+    var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [], leaderCommit: commitIndex});
 	for (var i in clusterMembers) {
         if(clusterMembers[i]!=id) (function(serverId){
             if(nextIndex[serverId]==log.length){
-                var message=JSON.stringify({rpc: 'appendEntries', term: currentTerm, leaderId: id, prevLogIndex: log.length-1, prevLogTerm: log[log.length-1].term,entries: [], leaderCommit: commitIndex});
                 sendMessage(serverId,message);
             }
         })(clusterMembers[i]);
