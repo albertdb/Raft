@@ -29,6 +29,7 @@ var id=process.argv[2] || module.parent.exports.clientId,
     maybeNeedToCommit=false,
     lastApplied=0,
     maxAppliedEntriesInLog=10000,
+    hardLogSizeLimit=100000,
     nextIndex=Object.create(null),
     matchIndex=Object.create(null),
     recoveryMode=false,
@@ -519,6 +520,7 @@ function processEntries(upTo){
         }
     }
     else if(upTo > processEntries.upTo) processEntries.upTo = upTo;
+    if(log.length-log.firstIndex>hardLogSizeLimit) recoveryMode=false;
     if(!recoveryMode) while(lastApplied-log.firstIndex>maxAppliedEntriesInLog) log.shift();
 }
 
