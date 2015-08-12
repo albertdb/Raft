@@ -28,6 +28,8 @@ var id=process.argv[2] || module.parent.exports.clientId,
     callbackQueue=new Deque(),
     replyNewEntriesTimer,
     replyNewEntriesTimeLimit=100,
+    maxNonFulfilledDispatchedRequests=10000,
+    maxQueuedRequests=100000,
     debug=(process.argv[5]=="true" || (module.parent && module.parent.exports.debugClient==true)),
     zmq=require('zmq'),
     clientSocket = zmq.socket('dealer'),
@@ -85,52 +87,53 @@ function replyNewEntries(initialClientSeqNum,success,leaderId,numEntries){
 
 function put(key,value,callback){
     var command={type: 'PUT', key: key, value: value};
-    var request=new Request(seqNum++,command,callback);
-    if(dispatchQueue.length==0) setImmediate(dispatch,1);
-    dispatchQueue.push(request);
-    callbackQueue.push(request);
+    newRequest(command,callback);
 }
 
 function get(key,callback){
     var command={type: 'GET', key: key};
-    var request=new Request(seqNum++,command,callback);
-    if(dispatchQueue.length==0) setImmediate(dispatch,1);
-    dispatchQueue.push(request);
-    callbackQueue.push(request);
+    newRequest(command,callback);
 }
 
 function del(key,callback){
     var command={type: 'DEL', key: key};
-    var request=new Request(seqNum++,command,callback);
-    if(dispatchQueue.length==0) setImmediate(dispatch,1);
-    dispatchQueue.push(request);
-    callbackQueue.push(request);
+    newRequest(command,callback);
 }
 
 function newConfig(clusterMembers,callback){
     var command={type: 'CFG', clusterMembers: clusterMembers};
-    var request=new Request(seqNum++,command,callback);
-    if(dispatchQueue.length==0) setImmediate(dispatch,1);
-    dispatchQueue.push(request);
-    callbackQueue.push(request);
+    newRequest(command,callback);
+}
+
+function newRequest(command,callback){
+    if(callbackQueue.length<maxQueuedRequests){
+        var request=new Request(seqNum++,command,callback);
+        if(dispatchQueue.length==0) setImmediate(dispatch,1);
+        dispatchQueue.push(request);
+        callbackQueue.push(request);
+    }
+    else if(callback) callback(new Error('Queue is full. Either request rate is too high or a majority of the storage cluster is down.'));
 }
 
 function dispatch(numEntries){
-    numEntries=numEntries||dispatchQueue.length;
-    numEntries=Math.min(numEntries,dispatchQueue.length,100); //PARCHE. No tiene efectos secundarios, pero no soluciona el origen del problema. 
-    var leaderId;
-    var commands=[];
-    for(var i=0;i<numEntries;i++) commands.push(dispatchQueue.get(i).command);
-    if(numEntries>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue.peekFront().seqNum,commands))){
-        if(leaderId) lastKnownLeaderId=leaderId;
-        var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue.peekFront().seqNum, commands: commands});
-        sendMessageToServer(lastKnownLeaderId,message);
-        replyNewEntriesTimer=setTimeout(replyNewEntriesTimeout,replyNewEntriesTimeLimit,numEntries);
+    if(callbackQueue.length-dispatchQueue.length<maxNonFulfilledDispatchedRequests){
+        numEntries=numEntries||dispatchQueue.length;
+        numEntries=Math.min(numEntries,dispatchQueue.length,100); //PARCHE. No tiene efectos secundarios, pero no soluciona el origen del problema. 
+        var leaderId;
+        var commands=[];
+        for(var i=0;i<numEntries;i++) commands.push(dispatchQueue.get(i).command);
+        if(numEntries>0) if(lastKnownLeaderId!=id || (leaderId=server.newEntries(id,dispatchQueue.peekFront().seqNum,commands))){
+            if(leaderId) lastKnownLeaderId=leaderId;
+            var message=JSON.stringify({rpc: 'newEntries', clientId: id, initialClientSeqNum: dispatchQueue.peekFront().seqNum, commands: commands});
+            sendMessageToServer(lastKnownLeaderId,message);
+            replyNewEntriesTimer=setTimeout(replyNewEntriesTimeout,replyNewEntriesTimeLimit,numEntries);
+        }
+        else{
+            for(var i=0;i<numEntries;i++) dispatchQueue.shift();
+            if(dispatchQueue.length>0) setImmediate(dispatch);
+        }
     }
-    else{
-        for(var i=0;i<numEntries;i++) dispatchQueue.shift();
-        if(dispatchQueue.length>0) setImmediate(dispatch);
-    }
+    else setImmediate(dispatch,numEntries);
 }
 
 module.exports.put=put;
