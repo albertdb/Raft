@@ -1,5 +1,5 @@
 {
-  "name": "raft",
+  "name": "raft-leveldb",
   "version": "1.0.2",
   "description": "Distributed, consistent and highly available key-value storage system (using LevelDB) based on Raft consensus algorithm.",
   "main": "client.js",
