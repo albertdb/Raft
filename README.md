@@ -29,7 +29,7 @@ permissions and limitations under the Licence.
 ### Install dependencies (npm)
 `cd Raft`
 
-`npm install zmq level snappy double-ended-queue`
+`npm install`
 ## Execution
 ### Router
 `node router.js 12345`
@@ -61,6 +61,7 @@ module.exports.clusterMembers=['0','1','2'];
 module.exports.debugClient=false;
 module.exports.debugServer=false;
 ```
+Note that each Raft client has a Raft server attached to it, with `id` equal to `module.exports.clientId`.
 #### Basic API
 ##### client.put(key, value[, callback])
 `put()` is the primary method for inserting data into the store. Both the `key` and `value` can be arbitrary data objects.

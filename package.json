@@ -1,0 +1,40 @@
+{
+  "name": "raft",
+  "version": "1.0.2",
+  "description": "Distributed, consistent and highly available key-value storage system (using LevelDB) based on Raft consensus algorithm.",
+  "main": "client.js",
+  "dependencies": {
+    "double-ended-queue": "^2.1.0-0",
+    "level": "^1.4.0",
+    "snappy": "^5.0.2",
+    "zmq": "^2.14.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albertdb/Raft.git"
+  },
+  "keywords": [
+    "raft",
+    "consensus",
+    "paxos",
+    "leveldb",
+    "distributed",
+    "ha",
+    "consistent",
+    "key-value",
+    "storage",
+    "zmq",
+    "snappy"
+  ],
+  "author": "Albert Duato Botam",
+  "license": "SEE LICENSE IN LICENCE.pdf",
+  "bugs": {
+    "url": "https://github.com/albertdb/Raft/issues"
+  },
+  "homepage": "https://github.com/albertdb/Raft#readme"
+}
